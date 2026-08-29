@@ -5,19 +5,17 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Allow the workflow to publish Pages and to enable it on the first run.
+# Publishing happens by pushing the built bundle to the gh-pages branch, so
+# the only permission needed is write access to the repository contents.
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
-# One deployment at a time; never cancel one that is already publishing.
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,13 +25,6 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Configure Pages
-        id: pages
-        uses: actions/configure-pages@v5
-        with:
-          # Turns Pages on automatically the first time this runs.
-          enablement: true
-
       - run: npm ci
 
       - run: npm test
@@ -41,19 +32,17 @@ jobs:
       - name: Build static bundle
         env:
           STATIC_EXPORT: "true"
-          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          # Project pages are served from /<repo>, so the app needs that prefix.
+          PAGES_BASE_PATH: /${{ github.event.repository.name }}
         run: npm run build
 
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./out
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publish to gh-pages
+        run: |
+          touch out/.nojekyll
+          cd out
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Static build of ${{ github.sha }}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages
