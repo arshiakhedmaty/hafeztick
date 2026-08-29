@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description:
     "برنامه‌ی روزانه و هفتگی‌ات را بچین، کارها را تیک بزن و ببین در طول زمان چقدر به برنامه پایبند بوده‌ای.",
   applicationName: "HafezTick",
-  manifest: "/manifest.webmanifest",
+  manifest: `${process.env.PAGES_BASE_PATH ?? ""}/manifest.webmanifest`,
   appleWebApp: { capable: true, title: "حافظ‌تیک", statusBarStyle: "default" },
 };
 
