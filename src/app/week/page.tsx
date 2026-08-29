@@ -1,0 +1,275 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  type DayKey,
+  addDays,
+  formatDay,
+  formatMonth,
+  startOfWeek,
+  weekDays,
+} from "@/lib/date/day";
+import { faNum, faPercent } from "@/lib/utils/number";
+import { computeDayScores } from "@/lib/domain/stats";
+import { flexibleProgressForWeek, scoreWeek } from "@/lib/domain/scoring";
+import { backlogTasks } from "@/lib/domain/selectors";
+import { useApp } from "@/lib/store/AppStore";
+import { useToast } from "@/components/ui/Toast";
+import { Button, IconButton } from "@/components/ui/Button";
+import { Card, CardHeader, SectionTitle } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Icon } from "@/components/ui/Icon";
+import { ProgressBar } from "@/components/ui/ProgressRing";
+import { ScreenSkeleton } from "@/components/ui/Skeleton";
+import { Menu } from "@/components/ui/Menu";
+import { QuickAdd } from "@/components/tasks/QuickAdd";
+import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { DayColumn } from "@/components/week/DayColumn";
+
+export default function WeekPage() {
+  const { data, actions, today, ready } = useApp();
+  const toast = useToast();
+
+  // Null anchors the board to the current week, so it follows the clock.
+  const [selectedAnchor, setSelectedAnchor] = useState<DayKey | null>(null);
+  const [dialog, setDialog] = useState<{
+    open: boolean;
+    taskId: string | null;
+    day: DayKey | null;
+  }>({ open: false, taskId: null, day: null });
+
+  const anchor = selectedAnchor ?? today;
+  const days = useMemo(() => weekDays(anchor), [anchor]);
+  const setAnchor = (next: DayKey) =>
+    setSelectedAnchor(startOfWeek(next) === startOfWeek(today) ? null : next);
+
+  const summary = useMemo(() => {
+    const scores = computeDayScores(data.entries, days);
+    const flexible = flexibleProgressForWeek(data.routines, data.entries, days);
+    const week = scoreWeek(scores, flexible, data.settings.dailyGoal);
+
+    const previousDays = weekDays(addDays(days[0], -7));
+    const previous = scoreWeek(
+      computeDayScores(data.entries, previousDays),
+      flexibleProgressForWeek(data.routines, data.entries, previousDays),
+      data.settings.dailyGoal,
+    );
+
+    return {
+      week,
+      delta:
+        week.ratio !== null && previous.ratio !== null
+          ? week.ratio - previous.ratio
+          : null,
+    };
+  }, [data, days]);
+
+  const backlog = useMemo(() => backlogTasks(data), [data]);
+  const isCurrentWeek = startOfWeek(today) === days[0];
+
+  if (!ready) return <ScreenSkeleton rows={4} />;
+
+  const { week, delta } = summary;
+
+  return (
+    <>
+      <header className="mb-5 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-bold text-fg sm:text-2xl">
+            {isCurrentWeek ? "این هفته" : "هفته"}
+          </h1>
+          <p className="mt-0.5 truncate text-[13px] text-muted">
+            {formatDay(days[0])} تا {formatDay(days[6])} · {formatMonth(days[6])}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1">
+          {!isCurrentWeek && (
+            <Button size="sm" variant="soft" onClick={() => setAnchor(today)}>
+              این هفته
+            </Button>
+          )}
+          <IconButton
+            icon="chevron-end"
+            label="هفته‌ی قبل"
+            size="sm"
+            variant="outline"
+            onClick={() => setAnchor(addDays(days[0], -7))}
+          />
+          <IconButton
+            icon="chevron-start"
+            label="هفته‌ی بعد"
+            size="sm"
+            variant="outline"
+            onClick={() => setAnchor(addDays(days[0], 7))}
+          />
+        </div>
+      </header>
+
+      <Card className="mb-5">
+        <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
+          <div>
+            <p className="text-[11px] text-muted">پایبندی هفته</p>
+            <p className="hz-tnum mt-1 text-3xl font-bold leading-none text-fg">
+              {week.ratio === null ? "—" : `${faPercent(week.ratio)}٪`}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[11px] text-muted">روزهای موفق</p>
+            <p className="hz-tnum mt-1 text-lg font-semibold text-fg">
+              {faNum(week.successfulDays)}
+              <span className="text-[12px] font-normal text-muted">
+                {" "}
+                از {faNum(week.plannedDays)}
+              </span>
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[11px] text-muted">کارهای انجام‌شده</p>
+            <p className="hz-tnum mt-1 text-lg font-semibold text-fg">
+              {faNum(week.doneCount)}
+              <span className="text-[12px] font-normal text-muted">
+                {" "}
+                از {faNum(week.totalCount)}
+              </span>
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[11px] text-muted">نسبت به هفته‌ی قبل</p>
+            <p className="hz-tnum mt-1 flex items-center gap-1 text-lg font-semibold">
+              {delta === null ? (
+                <span className="text-muted">—</span>
+              ) : (
+                <span
+                  className={
+                    delta > 0.005
+                      ? "flex items-center gap-1 text-success"
+                      : delta < -0.005
+                        ? "flex items-center gap-1 text-danger"
+                        : "flex items-center gap-1 text-muted"
+                  }
+                >
+                  <Icon
+                    name={
+                      delta > 0.005
+                        ? "arrow-up"
+                        : delta < -0.005
+                          ? "arrow-down"
+                          : "minus"
+                    }
+                    size="0.85em"
+                  />
+                  {faPercent(Math.abs(delta))}٪
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+
+        <ProgressBar
+          value={week.ratio ?? 0}
+          className="mt-4"
+          tone={week.ratio !== null && week.ratio >= 1 ? "accent" : "primary"}
+        />
+      </Card>
+
+      <SectionTitle>روزهای هفته</SectionTitle>
+      <div className="mb-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        {days.map((day) => (
+          <DayColumn
+            key={day}
+            day={day}
+            today={today}
+            onAdd={(target) => setDialog({ open: true, taskId: null, day: target })}
+            onOpenTask={(taskId) => setDialog({ open: true, taskId, day: null })}
+          />
+        ))}
+      </div>
+
+      <Card>
+        <CardHeader
+          title="سبد کارها"
+          icon="inbox"
+          subtitle="کارهایی که هنوز تاریخ ندارند. هر وقت خواستی به یک روز بسپارشان."
+        />
+
+        <QuickAdd day={null} placeholder="کاری که فعلاً تاریخ ندارد…" />
+
+        {backlog.length === 0 ? (
+          <EmptyState
+            compact
+            icon="inbox"
+            title="سبد خالی است"
+            description="ایده‌ها و کارهای بی‌تاریخ اینجا جمع می‌شوند."
+          />
+        ) : (
+          <ul className="mt-3 space-y-1">
+            {backlog.map((task) => (
+              <li
+                key={task.id}
+                className="group flex items-center gap-2 rounded-xl border border-transparent px-2 py-2 transition-colors hover:border-line hover:bg-surface-2/60"
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDialog({ open: true, taskId: task.id, day: null })
+                  }
+                  className="min-w-0 flex-1 truncate text-start text-[13.5px] text-fg-soft transition-colors hover:text-fg"
+                >
+                  {task.title}
+                </button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    actions.moveTask(task.id, today);
+                    toast({ message: "به امروز اضافه شد", icon: "calendar" });
+                  }}
+                >
+                  امروز
+                </Button>
+                <Menu
+                  items={[
+                    {
+                      label: "فردا",
+                      icon: "calendar",
+                      onClick: () => {
+                        actions.moveTask(task.id, addDays(today, 1));
+                        toast({ message: "به فردا منتقل شد", icon: "calendar" });
+                      },
+                    },
+                    {
+                      label: "ویرایش",
+                      icon: "pencil",
+                      onClick: () =>
+                        setDialog({ open: true, taskId: task.id, day: null }),
+                    },
+                    {
+                      label: "حذف",
+                      icon: "trash",
+                      danger: true,
+                      onClick: () => {
+                        actions.deleteTask(task.id);
+                        toast({ message: "حذف شد", icon: "trash" });
+                      },
+                    },
+                  ]}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <TaskDialog
+        open={dialog.open}
+        taskId={dialog.taskId}
+        defaultDay={dialog.day}
+        onClose={() => setDialog({ open: false, taskId: null, day: null })}
+      />
+    </>
+  );
+}

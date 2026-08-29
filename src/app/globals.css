@@ -1,0 +1,293 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   HafezTick design tokens
+   Light is a warm paper tone, dark is a deep neutral with a green cast.
+   Primary is turquoise (فیروزه‌ای); the accent gold is reserved for streaks
+   and celebration, so it stays meaningful.
+--------------------------------------------------------------------------- */
+
+:root {
+  --bg: #f6f5f2;
+  --bg-soft: #efedE8;
+  --surface: #ffffff;
+  --surface-2: #f2f0eb;
+  --line: #e5e1d9;
+  --line-strong: #d5cfc3;
+  --fg: #17181a;
+  --fg-soft: #3d4046;
+  --muted: #6e7076;
+  --primary: #0e9c8a;
+  --primary-hover: #0b8578;
+  --primary-contrast: #ffffff;
+  --primary-soft: #dcf4f0;
+  --accent: #c08327;
+  --accent-soft: #f7ecd6;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --danger-soft: #fdeaea;
+  --shadow-sm: 0 1px 2px rgb(23 24 26 / 0.05);
+  --shadow-md: 0 4px 16px -4px rgb(23 24 26 / 0.1);
+  --shadow-lg: 0 18px 48px -18px rgb(23 24 26 / 0.28);
+
+  --cat-teal: #0e9c8a;
+  --cat-violet: #7c5cd6;
+  --cat-amber: #c08327;
+  --cat-rose: #d2547a;
+  --cat-sky: #2b7fd4;
+  --cat-lime: #5c9c1f;
+  --cat-slate: #6b7280;
+}
+
+[data-theme="dark"] {
+  --bg: #0b0e10;
+  --bg-soft: #0f1315;
+  --surface: #14191c;
+  --surface-2: #1b2226;
+  --line: #262f34;
+  --line-strong: #35424a;
+  --fg: #e9eef0;
+  --fg-soft: #c3cbd0;
+  --muted: #8e999f;
+  --primary: #2fd4be;
+  --primary-hover: #4ae0cc;
+  --primary-contrast: #05201d;
+  --primary-soft: #10312e;
+  --accent: #e5b45c;
+  --accent-soft: #322715;
+  --success: #34d399;
+  --danger: #f87171;
+  --danger-soft: #351d1d;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 16px -4px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 18px 48px -18px rgb(0 0 0 / 0.7);
+
+  --cat-teal: #2fd4be;
+  --cat-violet: #a58cf0;
+  --cat-amber: #e5b45c;
+  --cat-rose: #f0819f;
+  --cat-sky: #63a9f0;
+  --cat-lime: #93d13f;
+  --cat-slate: #98a2ae;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-soft: var(--bg-soft);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-soft: var(--fg-soft);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-contrast: var(--primary-contrast);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --font-sans: var(--font-app);
+
+  --radius-card: 1.125rem;
+  --radius-field: 0.75rem;
+
+  --shadow-card: var(--shadow-sm);
+  --shadow-float: var(--shadow-md);
+  --shadow-modal: var(--shadow-lg);
+}
+
+/* --------------------------------------------------------------------------- */
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  --font-app: "Vazirmatn", "Segoe UI", Tahoma, "Iranian Sans", sans-serif;
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-app);
+  font-feature-settings: "ss02";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--fg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Thin, unobtrusive scrollbars that follow the theme. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---------------------------------------------------------------------------
+   Motion
+   Every animation is short and purposeful. Users who ask for reduced motion —
+   through the OS or the app's own setting — get none of it.
+--------------------------------------------------------------------------- */
+
+@keyframes hz-tick {
+  from {
+    stroke-dashoffset: 26;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes hz-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes hz-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hz-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes hz-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hz-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hz-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 10px color-mix(in oklab, var(--accent) 0%, transparent);
+  }
+}
+
+.hz-tick-path {
+  stroke-dasharray: 26;
+  stroke-dashoffset: 26;
+}
+
+.hz-tick-path[data-checked="true"] {
+  animation: hz-tick 260ms cubic-bezier(0.34, 1.2, 0.64, 1) forwards;
+}
+
+.hz-pop {
+  animation: hz-pop 320ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.hz-rise {
+  animation: hz-rise 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hz-fade {
+  animation: hz-fade 200ms ease both;
+}
+
+.hz-sheet {
+  animation: hz-sheet-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hz-toast {
+  animation: hz-toast-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hz-glow {
+  animation: hz-glow 1.4s ease-out 2;
+}
+
+/* Staggered list entrance, capped so long lists never feel slow. */
+.hz-stagger > * {
+  animation: hz-rise 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 28ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+[data-motion="reduced"] *,
+[data-motion="reduced"] *::before,
+[data-motion="reduced"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* Utility: numbers that should never reshape when values change. */
+.hz-tnum {
+  font-variant-numeric: tabular-nums;
+}
