@@ -97,7 +97,7 @@ export class AppStore {
 
   private emit(): void {
     for (const listener of this.listeners) listener();
-  }
+  };
 
   private commit(data: AppData, today = this.snapshot.today): void {
     this.snapshot = { data, today, ready: true };
@@ -163,7 +163,7 @@ export class AppStore {
 
   // --- Entries -------------------------------------------------------------
 
-  setEntryStatus(entry: Entry, status: EntryStatus): void {
+  setEntryStatus = (entry: Entry, status: EntryStatus): void => {
     this.update((previous) => ({
       ...previous,
       entries: upsertEntry(previous.entries, {
@@ -172,14 +172,14 @@ export class AppStore {
         doneAt: status === "done" ? Date.now() : null,
       }),
     }));
-  }
+  };
 
-  toggleEntry(entry: Entry): void {
+  toggleEntry = (entry: Entry): void => {
     this.setEntryStatus(entry, entry.status === "done" ? "pending" : "done");
-  }
+  };
 
   /** Flexible routines are recorded only on the days they actually happen. */
-  toggleFlexible(routine: Routine, day: DayKey): void {
+  toggleFlexible = (routine: Routine, day: DayKey): void => {
     const id = entryId(day, "routine", routine.id);
 
     this.update((previous) => {
@@ -207,11 +207,11 @@ export class AppStore {
         }),
       };
     });
-  }
+  };
 
   // --- Tasks ---------------------------------------------------------------
 
-  addTask(input: TaskInput): Task {
+  addTask = (input: TaskInput): Task => {
     const task: Task = {
       id: uid("tk"),
       title: input.title.trim(),
@@ -227,9 +227,9 @@ export class AppStore {
       this.resync({ ...previous, tasks: [...previous.tasks, task] }),
     );
     return task;
-  }
+  };
 
-  updateTask(id: string, patch: Partial<Omit<Task, "id">>): void {
+  updateTask = (id: string, patch: Partial<Omit<Task, "id">>): void => {
     this.update((previous) =>
       this.resync({
         ...previous,
@@ -238,9 +238,9 @@ export class AppStore {
         ),
       }),
     );
-  }
+  };
 
-  moveTask(id: string, day: DayKey | null): void {
+  moveTask = (id: string, day: DayKey | null): void => {
     const today = this.snapshot.today;
     this.update((previous) =>
       this.resync({
@@ -259,9 +259,9 @@ export class AppStore {
         ),
       }),
     );
-  }
+  };
 
-  deleteTask(id: string): void {
+  deleteTask = (id: string): void => {
     const today = this.snapshot.today;
     this.update((previous) => ({
       ...previous,
@@ -275,11 +275,11 @@ export class AppStore {
           ),
       ),
     }));
-  }
+  };
 
   // --- Routines ------------------------------------------------------------
 
-  addRoutine(input: RoutineInput): Routine {
+  addRoutine = (input: RoutineInput): Routine => {
     const routine: Routine = {
       id: uid("rt"),
       title: input.title.trim(),
@@ -298,9 +298,9 @@ export class AppStore {
       this.resync({ ...previous, routines: [...previous.routines, routine] }),
     );
     return routine;
-  }
+  };
 
-  updateRoutine(id: string, patch: Partial<Omit<Routine, "id">>): void {
+  updateRoutine = (id: string, patch: Partial<Omit<Routine, "id">>): void => {
     this.update((previous) =>
       this.resync({
         ...previous,
@@ -309,14 +309,14 @@ export class AppStore {
         ),
       }),
     );
-  }
+  };
 
-  archiveRoutine(id: string, archived: boolean): void {
+  archiveRoutine = (id: string, archived: boolean): void => {
     this.updateRoutine(id, { archivedAt: archived ? Date.now() : null });
-  }
+  };
 
   /** Deletes the routine but keeps what already happened. */
-  deleteRoutine(id: string): void {
+  deleteRoutine = (id: string): void => {
     const today = this.snapshot.today;
     this.update((previous) =>
       this.resync({
@@ -332,11 +332,11 @@ export class AppStore {
         ),
       }),
     );
-  }
+  };
 
   // --- Categories ----------------------------------------------------------
 
-  addCategory(name: string, color: CategoryColor): void {
+  addCategory = (name: string, color: CategoryColor): void => {
     this.update((previous) => ({
       ...previous,
       categories: [
@@ -349,18 +349,18 @@ export class AppStore {
         },
       ],
     }));
-  }
+  };
 
-  updateCategory(id: string, patch: Partial<Omit<Category, "id">>): void {
+  updateCategory = (id: string, patch: Partial<Omit<Category, "id">>): void => {
     this.update((previous) => ({
       ...previous,
       categories: previous.categories.map((category) =>
         category.id === id ? { ...category, ...patch } : category,
       ),
     }));
-  }
+  };
 
-  deleteCategory(id: string): void {
+  deleteCategory = (id: string): void => {
     this.update((previous) => ({
       ...previous,
       categories: previous.categories.filter((category) => category.id !== id),
@@ -371,18 +371,18 @@ export class AppStore {
         task.categoryId === id ? { ...task, categoryId: null } : task,
       ),
     }));
-  }
+  };
 
   // --- Settings and data ---------------------------------------------------
 
-  updateSettings(patch: Partial<Settings>): void {
+  updateSettings = (patch: Partial<Settings>): void => {
     this.update((previous) => ({
       ...previous,
       settings: { ...previous.settings, ...patch },
     }));
-  }
+  };
 
-  loadSamplePlan(): void {
+  loadSamplePlan = (): void => {
     this.update((previous) =>
       this.resync({
         ...previous,
@@ -390,17 +390,17 @@ export class AppStore {
         settings: { ...previous.settings, onboarded: true },
       }),
     );
-  }
+  };
 
-  replaceAll(json: string): boolean {
+  replaceAll = (json: string): boolean => {
     const imported = importData(json);
     if (!imported) return false;
     this.commit(materializeThrough(imported, this.snapshot.today));
     return true;
-  }
+  };
 
-  resetAll(): void {
+  resetAll = (): void => {
     this.repository.clear();
     this.commit(createEmptyData());
-  }
+  };
 }

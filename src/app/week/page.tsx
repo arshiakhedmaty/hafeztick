@@ -44,19 +44,22 @@ export default function WeekPage() {
     setSelectedAnchor(startOfWeek(next) === startOfWeek(today) ? null : next);
 
   const summary = useMemo(() => {
+    // The headline counts the days that have actually happened. Weekly quotas
+    // are a separate promise and get their own row, so a Saturday morning does
+    // not read as a failed week.
     const scores = computeDayScores(data.entries, days);
-    const flexible = flexibleProgressForWeek(data.routines, data.entries, days);
-    const week = scoreWeek(scores, flexible, data.settings.dailyGoal);
+    const week = scoreWeek(scores, [], data.settings.dailyGoal);
 
     const previousDays = weekDays(addDays(days[0], -7));
     const previous = scoreWeek(
       computeDayScores(data.entries, previousDays),
-      flexibleProgressForWeek(data.routines, data.entries, previousDays),
+      [],
       data.settings.dailyGoal,
     );
 
     return {
       week,
+      flexible: flexibleProgressForWeek(data.routines, data.entries, days),
       delta:
         week.ratio !== null && previous.ratio !== null
           ? week.ratio - previous.ratio
@@ -69,7 +72,7 @@ export default function WeekPage() {
 
   if (!ready) return <ScreenSkeleton rows={4} />;
 
-  const { week, delta } = summary;
+  const { week, delta, flexible } = summary;
 
   return (
     <>
@@ -109,7 +112,9 @@ export default function WeekPage() {
       <Card className="mb-5">
         <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
           <div>
-            <p className="text-[11px] text-muted">پایبندی هفته</p>
+            <p className="text-[11px] text-muted">
+              {isCurrentWeek ? "پایبندی هفته تا امروز" : "پایبندی هفته"}
+            </p>
             <p className="hz-tnum mt-1 text-3xl font-bold leading-none text-fg">
               {week.ratio === null ? "—" : `${faPercent(week.ratio)}٪`}
             </p>
@@ -174,6 +179,40 @@ export default function WeekPage() {
           className="mt-4"
           tone={week.ratio !== null && week.ratio >= 1 ? "accent" : "primary"}
         />
+
+        {flexible.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-line pt-3">
+            <span className="text-[11px] text-muted">سهم‌های هفتگی:</span>
+            {flexible.map((item) => {
+              const complete = item.done >= item.target;
+              return (
+                <span
+                  key={item.routineId}
+                  className="flex items-center gap-2 text-[12px] text-fg-soft"
+                >
+                  {item.title}
+                  <span className="hz-tnum text-muted">
+                    {faNum(item.done)}/{faNum(item.target)}
+                  </span>
+                  <span className="flex gap-1" aria-hidden="true">
+                    {Array.from({ length: item.target }, (_, index) => (
+                      <span
+                        key={index}
+                        className={`size-1.5 rounded-full ${
+                          index < item.done
+                            ? complete
+                              ? "bg-accent"
+                              : "bg-primary"
+                            : "bg-line-strong"
+                        }`}
+                      />
+                    ))}
+                  </span>
+                </span>
+              );
+            })}
+          </div>
+        )}
       </Card>
 
       <SectionTitle>روزهای هفته</SectionTitle>
