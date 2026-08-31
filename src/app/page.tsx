@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { compareDays, formatDay, lastDays } from "@/lib/date/day";
+import { compareDays, formatDay, lastDays, weekDays } from "@/lib/date/day";
 import { faNum } from "@/lib/utils/number";
 import type { DayKey } from "@/lib/date/day";
 import type { Entry } from "@/lib/domain/types";
@@ -9,6 +9,7 @@ import { entriesForDay, overdueEntries } from "@/lib/domain/selectors";
 import { isSuccessfulDay, scoreDay } from "@/lib/domain/scoring";
 import { successMinutesFor } from "@/lib/domain/goals";
 import { computeDayScores, comparePeriods, computeStreaks } from "@/lib/domain/stats";
+import { totalMinutes } from "@/lib/domain/scoring";
 import { useApp } from "@/lib/store/AppStore";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
@@ -71,6 +72,32 @@ export default function TodayPage() {
     };
   }, [data.entries, data.settings, today]);
 
+  // The rings widen out from the viewed day: its week, then the thirty days
+  // ending on it. Days still ahead are left out of both, so a Saturday morning
+  // does not read as a failed week.
+  const wider = useMemo(() => {
+    const elapsed = (days: DayKey[]) =>
+      days.filter((candidate) => compareDays(candidate, day) <= 0);
+
+    const week = computeDayScores(
+      data.entries,
+      elapsed(weekDays(day)),
+      data.settings,
+    );
+    const month = computeDayScores(
+      data.entries,
+      elapsed(lastDays(day, 30)),
+      data.settings,
+    );
+    const goal = (scores: typeof week) =>
+      scores.reduce((sum, score) => sum + score.goalMinutes, 0);
+
+    return {
+      week: { minutes: totalMinutes(week), goalMinutes: goal(week) },
+      month: { minutes: totalMinutes(month), goalMinutes: goal(month) },
+    };
+  }, [data.entries, data.settings, day]);
+
   const overdue = useMemo(
     () => (day === today ? overdueEntries(data, today) : []),
     [data, day, today],
@@ -93,6 +120,8 @@ export default function TodayPage() {
         successful={view.successful}
         streak={insight.streak}
         weekDelta={insight.weekDelta}
+        week={wider.week}
+        month={wider.month}
       />
 
       {overdue.length > 0 && (
