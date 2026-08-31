@@ -72,30 +72,16 @@ export default function TodayPage() {
     };
   }, [data.entries, data.settings, today]);
 
-  // The rings widen out from the viewed day: its week, then the thirty days
-  // ending on it. Days still ahead are left out of both, so a Saturday morning
-  // does not read as a failed week.
-  const wider = useMemo(() => {
-    const elapsed = (days: DayKey[]) =>
-      days.filter((candidate) => compareDays(candidate, day) <= 0);
-
-    const week = computeDayScores(
-      data.entries,
-      elapsed(weekDays(day)),
-      data.settings,
+  // The week around the viewed day: its seven scores for the rosette strip,
+  // and the minutes logged in it so far. Days still ahead are left out of the
+  // total, so a Saturday morning does not read as a failed week.
+  const week = useMemo(() => {
+    const days = weekDays(day);
+    const scores = computeDayScores(data.entries, days, data.settings);
+    const elapsed = scores.filter(
+      (score) => compareDays(score.day, day) <= 0,
     );
-    const month = computeDayScores(
-      data.entries,
-      elapsed(lastDays(day, 30)),
-      data.settings,
-    );
-    const goal = (scores: typeof week) =>
-      scores.reduce((sum, score) => sum + score.goalMinutes, 0);
-
-    return {
-      week: { minutes: totalMinutes(week), goalMinutes: goal(week) },
-      month: { minutes: totalMinutes(month), goalMinutes: goal(month) },
-    };
+    return { scores, minutes: totalMinutes(elapsed) };
   }, [data.entries, data.settings, day]);
 
   const overdue = useMemo(
@@ -117,11 +103,13 @@ export default function TodayPage() {
       <DaySummary
         score={view.score}
         successMinutes={view.successMinutes}
-        successful={view.successful}
         streak={insight.streak}
         weekDelta={insight.weekDelta}
-        week={wider.week}
-        month={wider.month}
+        weekScores={week.scores}
+        weekMinutes={week.minutes}
+        day={day}
+        today={today}
+        settings={data.settings}
       />
 
       {overdue.length > 0 && (
