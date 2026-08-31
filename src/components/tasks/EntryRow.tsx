@@ -73,7 +73,7 @@ export function EntryRow({
 
   if (logged) {
     menuItems.push({
-      label: "ویرایش زمان",
+      label: "ویرایش زمان (L)",
       icon: "clock",
       onClick: startEditing,
     });
@@ -134,9 +134,34 @@ export function EntryRow({
     });
   }
 
+  /**
+   * L opens this row's time field, Escape closes it.
+   *
+   * Matched on `event.code`, not `event.key`: on a Persian layout the L key
+   * produces «م», and a shortcut that stops working when you switch layout is
+   * worse than none. Keys are ignored while a field inside the row has focus,
+   * so typing a duration never triggers them.
+   */
+  const onKeyDown = (event: React.KeyboardEvent<HTMLLIElement>) => {
+    const target = event.target as HTMLElement;
+    const typing = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+
+    if (event.code === "Escape" && open) {
+      event.preventDefault();
+      setOpen(false);
+      return;
+    }
+    if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.code === "KeyL" && !skipped) {
+      event.preventDefault();
+      startEditing();
+    }
+  };
+
   return (
     <li
       style={{ "--i": index } as React.CSSProperties}
+      onKeyDown={onKeyDown}
       className={cn(
         "group rounded-xl border border-transparent px-2.5 py-2.5 transition-colors duration-200",
         open ? "border-line bg-surface-2/60" : "hover:border-line hover:bg-surface-2/60",
@@ -187,6 +212,7 @@ export function EntryRow({
               <button
                 type="button"
                 onClick={startEditing}
+                title="ثبت زمان (کلید L)"
                 className="flex items-center gap-1 rounded-full border border-dashed border-line px-2.5 py-1 text-[11.5px] text-muted transition-colors hover:border-primary/60 hover:text-primary"
               >
                 <Icon name="clock" size="0.95em" />
@@ -233,6 +259,7 @@ export function EntryRow({
             value={draft}
             onChange={setDraft}
             onSubmit={confirm}
+            onCancel={() => setOpen(false)}
             autoFocus
             compact
           />

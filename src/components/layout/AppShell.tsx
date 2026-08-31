@@ -36,9 +36,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         real control, on every screen. The skip link is how a keyboard user
         gets past them; it stays hidden until it is focused.
       */}
+      {/*
+        Parked above the viewport rather than hidden with sr-only: Tailwind's
+        not-sr-only resets padding to zero, which left the focused link 20px
+        tall — under the WCAG target minimum, on the one control a keyboard
+        user reaches first.
+      */}
       <a
         href="#main"
-        className="sr-only rounded-field bg-primary px-4 py-2 text-sm font-medium text-primary-contrast focus:not-sr-only focus:absolute focus:inset-inline-start-4 focus:top-4 focus:z-[70]"
+        className="fixed start-4 top-0 z-[70] -translate-y-24 rounded-field bg-primary px-4 py-2.5 text-sm font-medium text-primary-contrast shadow-float transition-transform duration-150 focus:translate-y-4"
       >
         رفتن به محتوا
       </a>

@@ -34,6 +34,7 @@ export function DurationField({
   max = MAX_ENTRY_MINUTES,
   compact = false,
   onSubmit,
+  onCancel,
   name,
 }: {
   /** Minutes. */
@@ -44,6 +45,8 @@ export function DurationField({
   max?: number;
   compact?: boolean;
   onSubmit?: () => void;
+  /** Escape from inside the field, so the row can close without the mouse. */
+  onCancel?: () => void;
   /**
    * What this duration belongs to, e.g. a weekday. Several of these fields can
    * appear on one screen, and without it every one announces itself as plain
@@ -99,6 +102,10 @@ export function DurationField({
       if (event.key === "Enter" && onSubmit) {
         event.preventDefault();
         onSubmit();
+      }
+      if (event.key === "Escape" && onCancel) {
+        event.preventDefault();
+        onCancel();
       }
     },
   };

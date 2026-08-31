@@ -25,6 +25,48 @@ function mounted(seed?: AppData): AppStore {
   return store;
 }
 
+describe("moveTasks", () => {
+  it("moves every named task in one step", () => {
+    const store = mounted();
+    const a = store.addTask({ title: "اول", day: null });
+    const b = store.addTask({ title: "دوم", day: null });
+    const untouched = store.addTask({ title: "سوم", day: null });
+
+    store.moveTasks([a.id, b.id], "2026-08-29");
+
+    const tasks = store.getSnapshot().data.tasks;
+    expect(tasks.find((t) => t.id === a.id)?.day).toBe("2026-08-29");
+    expect(tasks.find((t) => t.id === b.id)?.day).toBe("2026-08-29");
+    expect(tasks.find((t) => t.id === untouched.id)?.day).toBeNull();
+  });
+
+  it("is a single undo, not one per task", () => {
+    const store = mounted();
+    const a = store.addTask({ title: "اول", day: null });
+    const b = store.addTask({ title: "دوم", day: null });
+
+    store.moveTasks([a.id, b.id], "2026-08-29");
+    expect(store.undo()).toBe(true);
+
+    const tasks = store.getSnapshot().data.tasks;
+    expect(tasks.every((t) => t.day === null)).toBe(true);
+    expect(store.canUndo()).toBe(false);
+  });
+
+  it("does nothing, and stays undoable, on an empty list", () => {
+    const store = mounted();
+    const task = store.addTask({ title: "زبان", day: null });
+    store.deleteTask(task.id);
+
+    store.moveTasks([], "2026-08-29");
+
+    // The delete is still the thing that would be undone.
+    expect(store.canUndo()).toBe(true);
+    store.undo();
+    expect(store.getSnapshot().data.tasks).toHaveLength(1);
+  });
+});
+
 describe("undo", () => {
   it("has nothing to undo before anything is deleted", () => {
     const store = mounted();

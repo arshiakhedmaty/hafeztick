@@ -122,8 +122,15 @@ export default function TodayPage() {
             size="sm"
             variant="outline"
             onClick={() => {
-              overdue.forEach((entry) => actions.moveTask(entry.sourceId, today));
-              toast({ message: "به امروز منتقل شد", icon: "calendar" });
+              actions.moveTasks(
+                overdue.map((entry) => entry.sourceId),
+                today,
+              );
+              toast({
+                message: `${faNum(overdue.length)} کار به امروز منتقل شد`,
+                icon: "calendar",
+                action: { label: "برگرداندن", onClick: () => actions.undo() },
+              });
             }}
           >
             انتقال همه به امروز

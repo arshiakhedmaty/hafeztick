@@ -301,6 +301,36 @@ export class AppStore {
     );
   };
 
+  /**
+   * Moves several tasks at once — the "sweep everything overdue into today"
+   * button. Doing it as one commit rather than one per task means a single
+   * write, a single render, and a single thing to undo: a bulk action the
+   * user cannot take back is worse than no bulk action.
+   */
+  moveTasks = (ids: string[], day: DayKey | null): void => {
+    if (ids.length === 0) return;
+    const today = this.snapshot.today;
+    const moving = new Set(ids);
+
+    this.remember();
+    this.update((previous) =>
+      this.resync({
+        ...previous,
+        tasks: previous.tasks.map((task) =>
+          moving.has(task.id) ? { ...task, day } : task,
+        ),
+        entries: previous.entries.filter(
+          (entry) =>
+            !(
+              entry.sourceType === "task" &&
+              moving.has(entry.sourceId) &&
+              compareDays(entry.day, today) >= 0
+            ),
+        ),
+      }),
+    );
+  };
+
   deleteTask = (id: string): void => {
     const today = this.snapshot.today;
     this.remember();
