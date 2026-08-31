@@ -182,6 +182,10 @@ export default function RoutinesPage() {
                           toast({
                             message: "روتین حذف شد؛ سابقه‌ی گذشته باقی می‌ماند",
                             icon: "trash",
+                            action: {
+                              label: "برگرداندن",
+                              onClick: () => actions.undo(),
+                            },
                           });
                         },
                       },

@@ -384,7 +384,17 @@ export default function SettingsPage() {
                   size="sm"
                   onClick={() => {
                     actions.deleteCategory(category.id);
-                    toast({ message: "دسته حذف شد", icon: "trash" });
+                    toast({
+                      message: "دسته حذف شد",
+                      icon: "trash",
+                      // Removing a category also clears it from every routine
+                      // and task, so undo matters more here than anywhere.
+                      action: {
+                        label: "برگرداندن",
+                        onClick: () => actions.undo(),
+                      },
+                      duration: 7000,
+                    });
                   }}
                 />
               </li>

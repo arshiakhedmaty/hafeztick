@@ -66,11 +66,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-[60] flex flex-col items-center gap-2 px-4 sm:bottom-6">
+      {/*
+        The live region is the container, not the toast, and it is always in
+        the document: a region that appears at the same moment as its content
+        is not announced. Polite, because logging time confirms something the
+        user just did rather than interrupting them.
+      */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-[60] flex flex-col items-center gap-2 px-4 sm:bottom-6"
+      >
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            role="status"
             className="hz-toast pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3 shadow-float"
           >
             {toast.icon && (

@@ -31,6 +31,18 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh lg:flex">
+      {/*
+        Nine tab stops of chrome sit between the top of the page and the first
+        real control, on every screen. The skip link is how a keyboard user
+        gets past them; it stays hidden until it is focused.
+      */}
+      <a
+        href="#main"
+        className="sr-only rounded-field bg-primary px-4 py-2 text-sm font-medium text-primary-contrast focus:not-sr-only focus:absolute focus:inset-inline-start-4 focus:top-4 focus:z-[70]"
+      >
+        رفتن به محتوا
+      </a>
+
       {/* Desktop rail */}
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-e border-line px-4 py-6 lg:flex">
         <Link href="/" className="mb-9 flex items-center gap-3 px-2">
@@ -41,7 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
         </Link>
 
-        <nav className="flex flex-col gap-1">
+        <nav aria-label="بخش‌های اصلی" className="flex flex-col gap-1">
           {NAV_ITEMS.map((item) => {
             const active = isActive(pathname, item.href);
             return (
@@ -78,13 +90,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           <ThemeToggle compact />
         </header>
 
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-5 sm:px-6 lg:pb-10 lg:pt-8">
+        <main
+          id="main"
+          tabIndex={-1}
+          className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-5 sm:px-6 lg:pb-10 lg:pt-8"
+        >
           {children}
         </main>
       </div>
 
       {/* Mobile tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
+      <nav
+        aria-label="بخش‌های اصلی"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+      >
         <ul className="mx-auto flex max-w-lg items-stretch">
           {NAV_ITEMS.map((item) => {
             const active = isActive(pathname, item.href);

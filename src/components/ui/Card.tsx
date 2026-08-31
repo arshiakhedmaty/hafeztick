@@ -65,14 +65,14 @@ export function SectionTitle({
 }) {
   return (
     <div className="mb-2 flex items-center justify-between gap-3 px-1">
-      <h3 className="hz-eyebrow flex items-center gap-2">
+      <h2 className="hz-eyebrow flex items-center gap-2">
         {children}
         {count !== undefined && (
           <span className="hz-tnum rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px]">
             {faNum(count)}
           </span>
         )}
-      </h3>
+      </h2>
       {action}
     </div>
   );

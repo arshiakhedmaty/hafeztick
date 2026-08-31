@@ -294,7 +294,14 @@ export default function WeekPage() {
                       danger: true,
                       onClick: () => {
                         actions.deleteTask(task.id);
-                        toast({ message: "حذف شد", icon: "trash" });
+                        toast({
+                          message: "کار حذف شد",
+                          icon: "trash",
+                          action: {
+                            label: "برگرداندن",
+                            onClick: () => actions.undo(),
+                          },
+                        });
                       },
                     },
                   ]}

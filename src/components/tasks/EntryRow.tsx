@@ -125,7 +125,11 @@ export function EntryRow({
       danger: true,
       onClick: () => {
         actions.deleteTask(entry.sourceId);
-        toast({ message: "کار حذف شد", icon: "trash" });
+        toast({
+          message: "کار حذف شد",
+          icon: "trash",
+          action: { label: "برگرداندن", onClick: () => actions.undo() },
+        });
       },
     });
   }

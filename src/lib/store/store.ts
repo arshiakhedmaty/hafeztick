@@ -75,6 +75,17 @@ export class AppStore {
   private hydrated = false;
   private clock: number | null = null;
 
+  /**
+   * The state as it was before the last destructive action.
+   *
+   * Deleting a routine, a task or a category cannot be reconstructed from
+   * what is left — removing a category also clears it from every routine and
+   * task that used it — so the only honest undo is the whole previous state.
+   * It is small JSON, and holding exactly one step keeps the promise easy to
+   * describe: the last delete can be taken back, nothing older.
+   */
+  private undoable: AppData | null = null;
+
   constructor(private readonly repository: DataRepository = localRepository) {}
 
   // --- React binding -------------------------------------------------------
@@ -292,6 +303,7 @@ export class AppStore {
 
   deleteTask = (id: string): void => {
     const today = this.snapshot.today;
+    this.remember();
     this.update((previous) => ({
       ...previous,
       tasks: previous.tasks.filter((task) => task.id !== id),
@@ -347,6 +359,7 @@ export class AppStore {
   /** Deletes the routine but keeps what already happened. */
   deleteRoutine = (id: string): void => {
     const today = this.snapshot.today;
+    this.remember();
     this.update((previous) =>
       this.resync({
         ...previous,
@@ -390,6 +403,7 @@ export class AppStore {
   };
 
   deleteCategory = (id: string): void => {
+    this.remember();
     this.update((previous) => ({
       ...previous,
       categories: previous.categories.filter((category) => category.id !== id),
@@ -429,7 +443,30 @@ export class AppStore {
   };
 
   resetAll = (): void => {
+    this.remember();
     this.repository.clear();
     this.commit(createEmptyData());
+  };
+
+  // --- Undo ----------------------------------------------------------------
+
+  private remember(): void {
+    this.undoable = this.snapshot.data;
+  }
+
+  /** True when the last destructive action can still be taken back. */
+  canUndo = (): boolean => this.undoable !== null;
+
+  /**
+   * Restores the state from before the last delete. One step only: undoing
+   * clears the record, so it can never walk further back than the user was
+   * told it would.
+   */
+  undo = (): boolean => {
+    const previous = this.undoable;
+    if (!previous) return false;
+    this.undoable = null;
+    this.commit(previous);
+    return true;
   };
 }
