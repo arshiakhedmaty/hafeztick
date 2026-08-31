@@ -124,7 +124,7 @@ export function Segmented<T extends string>({
               aria-checked={active}
               onClick={() => onChange(option.value)}
               className={cn(
-                "flex-1 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-all duration-150",
+                "flex-1 whitespace-nowrap rounded-lg px-2 py-1.5 text-[13px] font-medium transition-all duration-150",
                 active
                   ? "bg-surface text-fg shadow-card"
                   : "text-muted hover:text-fg-soft",

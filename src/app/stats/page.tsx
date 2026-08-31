@@ -39,7 +39,7 @@ function Stat({
   tone?: "accent" | "primary";
 }) {
   return (
-    <div className="px-1 py-3 sm:px-4">
+    <div className="bg-bg px-3 py-3.5 sm:px-4">
       <p className="hz-eyebrow flex items-center gap-1.5">
         {icon && (
           <Icon
@@ -140,7 +140,7 @@ export default function StatsPage() {
         />
       ) : (
         <div className="space-y-5">
-          <div className="grid grid-cols-2 divide-x divide-x-reverse divide-line border-y border-line lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-px overflow-hidden border-y border-line bg-line lg:grid-cols-4">
             <Stat
               label="زنجیره‌ی فعلی"
               value={`${faNum(overview.streaks.current)} روز`}
