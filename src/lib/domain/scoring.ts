@@ -1,56 +1,89 @@
 import type { DayKey } from "../date/day";
-import { type Entry, PRIORITY_WEIGHT, type Routine } from "./types";
+import { type GoalSettings, goalMinutesFor } from "./goals";
+import type { Entry, Routine } from "./types";
 import { isFlexible } from "./schedule";
 
 /**
- * Scores are weighted by priority, so finishing what matters counts for more
- * than clearing easy items. Entries the user explicitly marked "skipped" leave
- * the denominator entirely — a deliberate release valve so that consciously
- * dropping something does not read as failure.
+ * A day is scored on time, not on ticks.
+ *
+ * The question the app answers is «چقدر مطالعه کردی؟», so the numerator is the
+ * minutes the user actually reported and the denominator is that weekday's own
+ * hour goal. Finishing four short items and finishing one long one are no
+ * longer the same thing, which is the whole point.
+ *
+ * Entries the user marked "skipped" contribute nothing and are counted apart —
+ * a deliberate release valve, so consciously dropping an item does not read as
+ * failure. They do not shrink the goal: the hours were still the promise.
  */
 export interface DayScore {
   day: DayKey;
-  doneWeight: number;
-  totalWeight: number;
-  /** null when nothing was planned for the day. */
+  /** Minutes actually logged on this day, across every item. */
+  minutes: number;
+  /** Minutes this day asked for. Zero means the day is not scored. */
+  goalMinutes: number;
+  /**
+   * `minutes / goalMinutes`, uncapped so over-delivery stays visible.
+   * `null` when the day has no goal, or no history at all.
+   */
   ratio: number | null;
-  doneCount: number;
+  /** Items with time logged against them. */
+  loggedCount: number;
+  /** Items that were planned and not skipped. */
   totalCount: number;
   skippedCount: number;
 }
 
-export function emptyDayScore(day: DayKey): DayScore {
+export function emptyDayScore(day: DayKey, goalMinutes = 0): DayScore {
   return {
     day,
-    doneWeight: 0,
-    totalWeight: 0,
+    minutes: 0,
+    goalMinutes,
     ratio: null,
-    doneCount: 0,
+    loggedCount: 0,
     totalCount: 0,
     skippedCount: 0,
   };
 }
 
-export function scoreDay(day: DayKey, entries: Entry[]): DayScore {
-  const score = emptyDayScore(day);
+export function scoreDay(
+  day: DayKey,
+  entries: Entry[],
+  settings: GoalSettings,
+): DayScore {
+  const score = emptyDayScore(day, goalMinutesFor(settings, day));
 
   for (const entry of entries) {
-    if (entry.day !== day || entry.scope !== "day") continue;
+    if (entry.day !== day) continue;
+
     if (entry.status === "skipped") {
       score.skippedCount += 1;
       continue;
     }
-    const weight = PRIORITY_WEIGHT[entry.priority];
-    score.totalWeight += weight;
-    score.totalCount += 1;
-    if (entry.status === "done") {
-      score.doneWeight += weight;
-      score.doneCount += 1;
-    }
+
+    // Weekly-quota routines do not add to the day's item count, but the time
+    // spent on them is still time spent studying.
+    const minutes = Math.max(0, entry.minutes ?? 0);
+    score.minutes += minutes;
+    if (minutes > 0) score.loggedCount += 1;
+    if (entry.scope === "day") score.totalCount += 1;
   }
 
-  score.ratio = score.totalWeight > 0 ? score.doneWeight / score.totalWeight : null;
+  // A day nobody planned and nobody logged is neutral rather than a zero: it
+  // neither flatters nor punishes the statistics.
+  const touched =
+    score.totalCount > 0 || score.skippedCount > 0 || score.minutes > 0;
+
+  score.ratio =
+    score.goalMinutes > 0 && touched ? score.minutes / score.goalMinutes : null;
+
   return score;
+}
+
+export function isSuccessfulDay(
+  score: DayScore,
+  settings: Pick<GoalSettings, "successThreshold">,
+): boolean {
+  return score.ratio !== null && score.ratio >= settings.successThreshold;
 }
 
 export interface FlexibleProgress {
@@ -58,9 +91,10 @@ export interface FlexibleProgress {
   title: string;
   target: number;
   done: number;
-  weight: number;
+  /** Minutes logged against this routine across the week. */
+  minutes: number;
   ratio: number;
-  /** Days of this week on which it was already ticked. */
+  /** Days of this week on which it was already logged. */
   doneDays: DayKey[];
 }
 
@@ -85,22 +119,20 @@ export function flexibleProgressForWeek(
     .map((routine) => {
       const target =
         routine.repeat.kind === "flexible" ? routine.repeat.timesPerWeek : 0;
-      const doneDays = entries
-        .filter(
-          (entry) =>
-            entry.sourceId === routine.id &&
-            entry.status === "done" &&
-            daySet.has(entry.day),
-        )
-        .map((entry) => entry.day)
-        .sort();
+      const logged = entries.filter(
+        (entry) =>
+          entry.sourceId === routine.id &&
+          entry.status === "done" &&
+          daySet.has(entry.day),
+      );
+      const doneDays = logged.map((entry) => entry.day).sort();
 
       return {
         routineId: routine.id,
         title: routine.title,
         target,
         done: doneDays.length,
-        weight: PRIORITY_WEIGHT[routine.priority],
+        minutes: logged.reduce((sum, entry) => sum + (entry.minutes ?? 0), 0),
         ratio: target > 0 ? Math.min(1, doneDays.length / target) : 0,
         doneDays,
       };
@@ -108,60 +140,59 @@ export function flexibleProgressForWeek(
 }
 
 export interface WeekScore {
+  /** Minutes logged across the week. */
+  minutes: number;
+  /** Minutes the week asked for, summed over its days. */
+  goalMinutes: number;
   ratio: number | null;
-  doneWeight: number;
-  totalWeight: number;
-  doneCount: number;
-  totalCount: number;
-  /** Days that reached the daily goal. */
+  /** Days that reached their own hour goal's success threshold. */
   successfulDays: number;
+  /** Days that had a goal and some history. */
   plannedDays: number;
 }
 
 export function scoreWeek(
   dayScores: DayScore[],
-  flexible: FlexibleProgress[],
-  dailyGoal: number,
+  settings: Pick<GoalSettings, "successThreshold">,
 ): WeekScore {
-  let doneWeight = 0;
-  let totalWeight = 0;
-  let doneCount = 0;
-  let totalCount = 0;
+  let minutes = 0;
+  let goalMinutes = 0;
   let successfulDays = 0;
   let plannedDays = 0;
 
   for (const score of dayScores) {
-    doneWeight += score.doneWeight;
-    totalWeight += score.totalWeight;
-    doneCount += score.doneCount;
-    totalCount += score.totalCount;
+    minutes += score.minutes;
+    goalMinutes += score.goalMinutes;
     if (score.ratio !== null) {
       plannedDays += 1;
-      if (score.ratio >= dailyGoal) successfulDays += 1;
+      if (isSuccessfulDay(score, settings)) successfulDays += 1;
     }
   }
 
-  for (const item of flexible) {
-    doneWeight += Math.min(item.done, item.target) * item.weight;
-    totalWeight += item.target * item.weight;
-    doneCount += Math.min(item.done, item.target);
-    totalCount += item.target;
-  }
-
   return {
-    ratio: totalWeight > 0 ? doneWeight / totalWeight : null,
-    doneWeight,
-    totalWeight,
-    doneCount,
-    totalCount,
+    minutes,
+    goalMinutes,
+    ratio: goalMinutes > 0 ? minutes / goalMinutes : null,
     successfulDays,
     plannedDays,
   };
 }
 
-/** Average of the days that actually had a plan. */
+/** Minutes logged across a set of day scores. */
+export function totalMinutes(scores: DayScore[]): number {
+  return scores.reduce((sum, score) => sum + score.minutes, 0);
+}
+
+/** Average of the days that were actually scored. */
 export function averageRatio(scores: DayScore[]): number | null {
   const rated = scores.filter((s) => s.ratio !== null);
   if (rated.length === 0) return null;
   return rated.reduce((sum, s) => sum + (s.ratio as number), 0) / rated.length;
+}
+
+/** Average minutes per scored day — the honest "how much do I study" number. */
+export function averageMinutes(scores: DayScore[]): number | null {
+  const rated = scores.filter((s) => s.ratio !== null);
+  if (rated.length === 0) return null;
+  return rated.reduce((sum, s) => sum + s.minutes, 0) / rated.length;
 }

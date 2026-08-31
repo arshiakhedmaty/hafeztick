@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { faNum, faPercent } from "@/lib/utils/number";
+import { faClock, faDuration } from "@/lib/utils/duration";
+import { barValue } from "@/lib/utils/progress";
 import { lastDays } from "@/lib/date/day";
 import { categoryVar } from "@/lib/utils/colors";
 import { repeatLabel } from "@/lib/domain/labels";
@@ -48,7 +50,7 @@ export default function RoutinesPage() {
         <div>
           <h1 className="text-xl font-bold text-fg sm:text-2xl">روتین‌ها</h1>
           <p className="mt-0.5 text-[13px] text-muted">
-            کارهای تکرارشونده‌ای که پایبندی‌ات را می‌سازند.
+            کارهای تکرارشونده‌ای که ساعت‌های مطالعه‌ات را می‌سازند.
           </p>
         </div>
         <Button
@@ -138,14 +140,21 @@ export default function RoutinesPage() {
                       </p>
                     )}
 
-                    {stat && stat.planned > 0 && (
-                      <div className="mt-3 flex items-center gap-3">
+                    {stat && (stat.planned > 0 || stat.minutes > 0) && (
+                      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
                         <ProgressBar
-                          value={stat.ratio ?? 0}
+                          value={barValue(stat.ratio)}
                           className="max-w-56 flex-1"
                         />
                         <span className="hz-tnum shrink-0 text-[11px] text-muted">
-                          {faPercent(stat.ratio ?? 0)}٪ در ۳۰ روز اخیر
+                          {faDuration(stat.minutes, { short: true, zero: "۰" })} در
+                          ۳۰ روز اخیر
+                          {stat.averageMinutes !== null && (
+                            <> · هر بار {faClock(Math.round(stat.averageMinutes))}</>
+                          )}
+                          {stat.ratio !== null && (
+                            <> · {faPercent(stat.ratio)}٪ از روزها</>
+                          )}
                         </span>
                       </div>
                     )}

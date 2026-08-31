@@ -12,5 +12,7 @@ export const CATEGORY_COLOR_LABEL: Record<CategoryColor, string> = {
   rose: "صورتی",
   sky: "آبی",
   lime: "سبز",
+  coral: "مرجانی",
+  plum: "ارغوانی",
   slate: "خاکستری",
 };

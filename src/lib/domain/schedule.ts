@@ -43,6 +43,7 @@ export function entryFromRoutine(
     categoryId: routine.categoryId,
     priority: routine.priority,
     status: "pending",
+    minutes: 0,
     doneAt: null,
     order,
     scope,
@@ -59,6 +60,7 @@ export function entryFromTask(task: Task, day: DayKey, order: number): Entry {
     categoryId: task.categoryId,
     priority: task.priority,
     status: "pending",
+    minutes: 0,
     doneAt: null,
     order,
     scope: "day",
@@ -118,7 +120,13 @@ export function syncDay(
       // Refresh the snapshot of an untouched, still-editable item.
       kept.push(
         entry.status === "pending" && !isPast
-          ? { ...entry, ...stillPlanned, status: entry.status, doneAt: entry.doneAt }
+          ? {
+              ...entry,
+              ...stillPlanned,
+              status: entry.status,
+              minutes: entry.minutes,
+              doneAt: entry.doneAt,
+            }
           : entry,
       );
     } else if (isPast || entry.status !== "pending" || entry.scope === "week") {

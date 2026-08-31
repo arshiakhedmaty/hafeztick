@@ -1,4 +1,5 @@
-import type { AppData } from "../domain/types";
+import type { AppData, Entry, Settings } from "../domain/types";
+import { clampMinutes } from "../utils/duration";
 import { DATA_VERSION, DEFAULT_SETTINGS, createEmptyData } from "./defaults";
 
 /**
@@ -15,6 +16,68 @@ export interface DataRepository {
 
 export const STORAGE_KEY = "hafeztick:data:v1";
 
+/** Shape of the pre-v2 settings, kept only so old backups still open. */
+interface LegacySettings {
+  /** Was a 0..1 share of the day's *items*; it is now the success threshold. */
+  dailyGoal?: number;
+}
+
+/**
+ * Migrates settings written before hours existed.
+ *
+ * The old `dailyGoal` meant "this share of today's checklist"; the same number
+ * is still the honest answer to "this share of today's hours", so it carries
+ * over as the success threshold. The hour goal itself has no ancestor in the
+ * old data, so it starts at the default rather than being invented.
+ */
+function normalizeSettings(raw: unknown): Settings {
+  const input = (raw ?? {}) as Partial<Settings> & LegacySettings;
+
+  const weekday = Array.isArray(input.weekdayGoalMinutes)
+    ? Array.from({ length: 7 }, (_, index) => {
+        const value = input.weekdayGoalMinutes?.[index];
+        return typeof value === "number" && Number.isFinite(value)
+          ? clampMinutes(value)
+          : null;
+      })
+    : [...DEFAULT_SETTINGS.weekdayGoalMinutes];
+
+  const threshold =
+    typeof input.successThreshold === "number"
+      ? input.successThreshold
+      : typeof input.dailyGoal === "number"
+        ? input.dailyGoal
+        : DEFAULT_SETTINGS.successThreshold;
+
+  return {
+    ...DEFAULT_SETTINGS,
+    ...input,
+    dailyGoalMinutes:
+      typeof input.dailyGoalMinutes === "number"
+        ? clampMinutes(input.dailyGoalMinutes)
+        : DEFAULT_SETTINGS.dailyGoalMinutes,
+    weekdayGoalMinutes: weekday,
+    successThreshold: Math.min(1, Math.max(0.1, threshold)),
+    restDays: Array.isArray(input.restDays) ? input.restDays : [],
+  };
+}
+
+/**
+ * Entries written before v2 recorded only that something was ticked, never how
+ * long it took. Rather than invent a duration for them, they come back with
+ * zero minutes: the history of *what was planned* survives, the hours simply
+ * start accumulating from here.
+ */
+function normalizeEntry(entry: Entry): Entry {
+  const minutes =
+    typeof entry.minutes === "number" ? clampMinutes(entry.minutes) : 0;
+  return {
+    ...entry,
+    minutes,
+    scope: entry.scope === "week" ? "week" : "day",
+  };
+}
+
 /** Defensive normalisation: never let malformed storage crash the app. */
 export function normalize(raw: unknown): AppData | null {
   if (!raw || typeof raw !== "object") return null;
@@ -30,8 +93,8 @@ export function normalize(raw: unknown): AppData | null {
     categories: input.categories.length ? input.categories : empty.categories,
     routines: Array.isArray(input.routines) ? input.routines : [],
     tasks: Array.isArray(input.tasks) ? input.tasks : [],
-    entries: input.entries,
-    settings: { ...DEFAULT_SETTINGS, ...(input.settings ?? {}) },
+    entries: input.entries.map(normalizeEntry),
+    settings: normalizeSettings(input.settings),
     lastMaterializedDay: input.lastMaterializedDay ?? null,
   };
 }

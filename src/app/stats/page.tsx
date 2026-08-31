@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { faNum, faPercent } from "@/lib/utils/number";
+import { faClock, faDuration, faGoal } from "@/lib/utils/duration";
+import { barValue } from "@/lib/utils/progress";
 import { buildStatsOverview, type PeriodComparison } from "@/lib/domain/stats";
 import { useApp } from "@/lib/store/AppStore";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -33,7 +35,7 @@ function Stat({
   label: string;
   value: string;
   hint?: string;
-  icon?: "flame" | "target" | "check" | "calendar";
+  icon?: "flame" | "target" | "check" | "calendar" | "clock";
   tone?: "accent" | "primary";
 }) {
   return (
@@ -54,20 +56,25 @@ function Stat({
   );
 }
 
+/** Both sides are average minutes per scored day, so the delta is in minutes. */
 function Comparison({ label, data }: { label: string; data: PeriodComparison }) {
   const { current, previous, delta } = data;
-  const up = delta !== null && delta > 0.005;
-  const down = delta !== null && delta < -0.005;
+  // Five minutes is the noise floor: below it, "unchanged" is the honest word.
+  const up = delta !== null && delta > 5;
+  const down = delta !== null && delta < -5;
 
   return (
     <div className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface-2/40 px-4 py-3">
       <div className="min-w-0">
         <p className="text-[12px] text-muted">{label}</p>
         <p className="hz-tnum mt-1 text-[15px] font-semibold text-fg">
-          {current === null ? "—" : `${faPercent(current)}٪`}
+          {current === null
+            ? "—"
+            : faDuration(Math.round(current), { short: true, zero: "۰" })}
           {previous !== null && (
             <span className="mr-2 text-[12px] font-normal text-muted">
-              قبلاً {faPercent(previous)}٪
+              قبلاً{" "}
+              {faDuration(Math.round(previous), { short: true, zero: "۰" })}
             </span>
           )}
         </p>
@@ -86,7 +93,9 @@ function Comparison({ label, data }: { label: string; data: PeriodComparison }) 
           name={up ? "arrow-up" : down ? "arrow-down" : "minus"}
           size="0.9em"
         />
-        {delta === null ? "—" : `${faPercent(Math.abs(delta))}٪`}
+        {delta === null
+          ? "—"
+          : faDuration(Math.abs(Math.round(delta)), { short: true, zero: "۰" })}
       </span>
     </div>
   );
@@ -103,7 +112,8 @@ export default function StatsPage() {
 
   if (!ready) return <ScreenSkeleton rows={3} />;
 
-  const hasData = overview.totals.plannedEntries > 0;
+  // The screen has something to say once any time at all has been logged.
+  const hasData = overview.totals.minutes > 0 || overview.totals.activeDays > 0;
 
   return (
     <>
@@ -111,7 +121,7 @@ export default function StatsPage() {
         <div>
           <h1 className="text-xl font-bold text-fg sm:text-2xl">آمار</h1>
           <p className="mt-0.5 text-[13px] text-muted">
-            پایبندی‌ات به برنامه، در گذر زمان.
+            ساعت‌های مطالعه‌ات، در گذر زمان.
           </p>
         </div>
         <Segmented
@@ -126,7 +136,7 @@ export default function StatsPage() {
         <EmptyState
           icon="chart"
           title="هنوز آماری برای نمایش نیست"
-          description="به‌محض اینکه چند روز برنامه بچینی و تیک بزنی، روند، نقشه‌ی پایبندی و مقایسه‌ها اینجا ساخته می‌شوند."
+          description="به‌محض اینکه چند روز برنامه بچینی و زمان مطالعه‌ات را ثبت کنی، روند، نقشه‌ی پایبندی و مقایسه‌ها اینجا ساخته می‌شوند."
         />
       ) : (
         <div className="space-y-5">
@@ -139,26 +149,38 @@ export default function StatsPage() {
               tone="accent"
             />
             <Stat
-              label="میانگین پایبندی"
+              label="مجموع مطالعه"
+              value={faDuration(overview.totals.minutes, {
+                short: true,
+                zero: "۰",
+              })}
+              hint={`از ${faGoal(overview.totals.goalMinutes)} هدف این بازه`}
+              icon="clock"
+            />
+            <Stat
+              label="میانگین روزانه"
               value={
-                overview.totals.averageRatio === null
+                overview.totals.averageMinutes === null
                   ? "—"
-                  : `${faPercent(overview.totals.averageRatio)}٪`
+                  : faDuration(Math.round(overview.totals.averageMinutes), {
+                      short: true,
+                      zero: "۰",
+                    })
               }
-              hint={`در ${faNum(overview.totals.activeDays)} روز فعال`}
+              hint={
+                overview.totals.averageRatio === null
+                  ? `در ${faNum(overview.totals.activeDays)} روز فعال`
+                  : `${faPercent(overview.totals.averageRatio)}٪ از هدف · ${faNum(
+                      overview.totals.activeDays,
+                    )} روز فعال`
+              }
               icon="target"
             />
             <Stat
               label="روزهای موفق"
               value={faNum(overview.totals.successfulDays)}
-              hint={`هدف روزانه: ${faPercent(data.settings.dailyGoal)}٪`}
+              hint={`قانون: ${faPercent(data.settings.successThreshold)}٪ از هدف هر روز`}
               icon="check"
-            />
-            <Stat
-              label="کارهای انجام‌شده"
-              value={faNum(overview.totals.doneEntries)}
-              hint={`از ${faNum(overview.totals.plannedEntries)} کار برنامه‌ریزی‌شده`}
-              icon="calendar"
             />
           </div>
 
@@ -166,7 +188,7 @@ export default function StatsPage() {
             <CardHeader
               title="بهتر شده‌ای یا نه؟"
               icon="chart"
-              subtitle="مقایسه‌ی میانگین پایبندی با دوره‌ی قبل."
+              subtitle="مقایسه‌ی میانگین ساعت مطالعه‌ی روزانه با دوره‌ی قبل."
             />
             <div className="grid gap-2 sm:grid-cols-2">
               <Comparison label="۷ روز اخیر" data={overview.weekOverWeek} />
@@ -178,7 +200,7 @@ export default function StatsPage() {
             <CardHeader
               title="نقشه‌ی پایبندی"
               icon="calendar"
-              subtitle="هر خانه یک روز است؛ پررنگ‌تر یعنی بیشتر به برنامه پایبند بوده‌ای."
+              subtitle="هر خانه یک روز است؛ پررنگ‌تر یعنی سهم بیشتری از هدف ساعتی آن روز انجام شده."
             />
             <Heatmap scores={overview.scores} today={today} weeks={14} />
           </Card>
@@ -187,11 +209,11 @@ export default function StatsPage() {
             <CardHeader
               title="روند"
               icon="chart"
-              subtitle="میله‌ها نمره‌ی هر روز و خط، میانگین هفت‌روزه است."
+              subtitle="میله‌ها سهم هر روز از هدف ساعتی خودش، و خط میانگین هفت‌روزه است."
             />
             <TrendChart
               points={overview.trend.slice(-45)}
-              goal={data.settings.dailyGoal}
+              threshold={data.settings.successThreshold}
             />
           </Card>
 
@@ -200,16 +222,19 @@ export default function StatsPage() {
               <CardHeader
                 title="روزهای هفته"
                 icon="calendar"
-                subtitle="کدام روزها معمولاً بهتر پیش می‌روند."
+                subtitle="کدام روزها معمولاً بهتر پیش می‌روند، بر اساس هدف ساعتی خودشان."
               />
-              <WeekdayChart stats={overview.weekdays} />
+              <WeekdayChart
+                stats={overview.weekdays}
+                threshold={data.settings.successThreshold}
+              />
             </Card>
 
             <Card>
               <CardHeader
                 title="دسته‌ها"
                 icon="target"
-                subtitle="سهم هر دسته از کارها و میزان تکمیل آن."
+                subtitle="ساعت مطالعه‌ی هر دسته و سهمش از کل زمان."
               />
               <CategoryBars stats={overview.categories} />
             </Card>
@@ -220,7 +245,7 @@ export default function StatsPage() {
               <CardHeader
                 title="پایبندی روتین‌ها"
                 icon="repeat"
-                subtitle="عملکرد هر روتین در ۳۰ روز گذشته."
+                subtitle="ساعت‌های هر روتین در ۳۰ روز گذشته و اینکه چند روز از روزهای برنامه‌ریزی‌شده‌اش انجام شده."
               />
               <ul className="space-y-3.5">
                 {overview.routines.map((routine) => (
@@ -236,14 +261,23 @@ export default function StatsPage() {
                             {faNum(routine.currentStreak)}
                           </span>
                         )}
-                        {faNum(routine.done)} از {faNum(routine.planned)}
-                        <span className="mx-1.5 text-line-strong">·</span>
-                        <span className="text-fg-soft">
-                          {faPercent(routine.ratio ?? 0)}٪
+                        <span className="text-[13px] font-semibold text-fg-soft">
+                          {faDuration(routine.minutes, {
+                            short: true,
+                            zero: "۰",
+                          })}
                         </span>
+                        {routine.averageMinutes !== null && (
+                          <>
+                            <span className="mx-1.5 text-line-strong">·</span>
+                            هر بار {faClock(Math.round(routine.averageMinutes))}
+                          </>
+                        )}
+                        <span className="mx-1.5 text-line-strong">·</span>
+                        {faNum(routine.done)} از {faNum(routine.planned)} روز
                       </span>
                     </div>
-                    <ProgressBar value={routine.ratio ?? 0} />
+                    <ProgressBar value={barValue(routine.ratio)} />
                   </li>
                 ))}
               </ul>

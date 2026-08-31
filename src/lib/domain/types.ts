@@ -12,8 +12,15 @@ export type CategoryColor =
   | "rose"
   | "sky"
   | "lime"
+  | "coral"
+  | "plum"
   | "slate";
 
+/**
+ * - pending : planned, no time logged yet
+ * - done    : the user entered how long it took and confirmed it
+ * - skipped : deliberately dropped; leaves the day's denominator entirely
+ */
 export type EntryStatus = "pending" | "done" | "skipped";
 
 export type SourceType = "routine" | "task";
@@ -63,7 +70,7 @@ export interface Task {
 }
 
 /**
- * The unit the user actually ticks off, and the unit statistics are built on.
+ * The unit the user logs time against, and the unit statistics are built on.
  *
  * Entries are materialised once, as each day arrives, and then frozen: editing
  * or deleting a routine never rewrites what was already planned in the past.
@@ -79,9 +86,14 @@ export interface Entry {
   categoryId: ID | null;
   priority: Priority;
   status: EntryStatus;
+  /**
+   * Minutes of real time the user reported spending on this item. This — not
+   * the fact that a box is ticked — is what every progress number is built on.
+   */
+  minutes: number;
   doneAt: number | null;
   order: number;
-  /** Which budget this entry counts against: the day, or the week. */
+  /** Which budget the *item* counts against: the day, or the week. */
   scope: "day" | "week";
 }
 
@@ -90,8 +102,15 @@ export type ThemePreference = "system" | "light" | "dark";
 export interface Settings {
   theme: ThemePreference;
   displayName: string;
-  /** Ratio of the day that counts as a successful day (0..1). */
-  dailyGoal: number;
+  /** Default study target in minutes, used for any day without its own goal. */
+  dailyGoalMinutes: number;
+  /**
+   * Per-weekday study targets in minutes, index 0 = Saturday.
+   * `null` falls back to `dailyGoalMinutes`; `0` makes the day unscored.
+   */
+  weekdayGoalMinutes: (number | null)[];
+  /** Share of the day's hour goal that makes it a successful day (0..1). */
+  successThreshold: number;
   /** Weekdays exempt from breaking a streak (0 = Saturday). */
   restDays: number[];
   reduceMotion: boolean;
@@ -109,12 +128,6 @@ export interface AppData {
   lastMaterializedDay: DayKey | null;
 }
 
-export const PRIORITY_WEIGHT: Record<Priority, number> = {
-  low: 0.5,
-  normal: 1,
-  high: 2,
-};
-
 export const PRIORITY_LABEL: Record<Priority, string> = {
   low: "کم",
   normal: "معمولی",
@@ -128,6 +141,8 @@ export const CATEGORY_COLORS: CategoryColor[] = [
   "rose",
   "sky",
   "lime",
+  "coral",
+  "plum",
   "slate",
 ];
 

@@ -19,6 +19,7 @@ import {
   localRepository,
 } from "../storage/repository";
 import { createEmptyData, sampleRoutines } from "../storage/defaults";
+import { clampMinutes } from "../utils/duration";
 import { uid } from "../utils/id";
 
 export interface TaskInput {
@@ -163,33 +164,60 @@ export class AppStore {
 
   // --- Entries -------------------------------------------------------------
 
+  /**
+   * Records how long an item actually took.
+   *
+   * This is the only way progress enters the app. There is no timer to start
+   * and no timer to forget to stop: the user measures the time however they
+   * like, and the app is the ledger. Logging zero minutes is the same as
+   * clearing the item, so undo needs no separate concept.
+   */
+  logEntry = (entry: Entry, minutes: number): void => {
+    const safe = clampMinutes(minutes);
+
+    this.update((previous) => ({
+      ...previous,
+      entries: upsertEntry(previous.entries, {
+        ...entry,
+        minutes: safe,
+        status: safe > 0 ? "done" : "pending",
+        doneAt: safe > 0 ? (entry.doneAt ?? Date.now()) : null,
+      }),
+    }));
+  };
+
+  /** Back to "planned, nothing logged". */
+  clearEntry = (entry: Entry): void => {
+    this.logEntry(entry, 0);
+  };
+
   setEntryStatus = (entry: Entry, status: EntryStatus): void => {
     this.update((previous) => ({
       ...previous,
       entries: upsertEntry(previous.entries, {
         ...entry,
         status,
-        doneAt: status === "done" ? Date.now() : null,
+        // Skipping releases the item; any time on it goes with it.
+        minutes: status === "done" ? entry.minutes : 0,
+        doneAt: status === "done" ? (entry.doneAt ?? Date.now()) : null,
       }),
     }));
   };
 
-  toggleEntry = (entry: Entry): void => {
-    this.setEntryStatus(entry, entry.status === "done" ? "pending" : "done");
-  };
-
   /** Flexible routines are recorded only on the days they actually happen. */
-  toggleFlexible = (routine: Routine, day: DayKey): void => {
+  logFlexible = (routine: Routine, day: DayKey, minutes: number): void => {
     const id = entryId(day, "routine", routine.id);
+    const safe = clampMinutes(minutes);
 
     this.update((previous) => {
-      const existing = previous.entries.find((item) => item.id === id);
-      if (existing?.status === "done") {
+      if (safe === 0) {
         return {
           ...previous,
           entries: previous.entries.filter((item) => item.id !== id),
         };
       }
+
+      const existing = previous.entries.find((item) => item.id === id);
       return {
         ...previous,
         entries: upsertEntry(previous.entries, {
@@ -201,7 +229,8 @@ export class AppStore {
           categoryId: routine.categoryId,
           priority: routine.priority,
           status: "done",
-          doneAt: Date.now(),
+          minutes: safe,
+          doneAt: existing?.doneAt ?? Date.now(),
           order: routine.order,
           scope: "week",
         }),

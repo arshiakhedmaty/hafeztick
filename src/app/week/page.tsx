@@ -4,15 +4,19 @@ import { useMemo, useState } from "react";
 import {
   type DayKey,
   addDays,
+  compareDays,
   formatDay,
   formatMonth,
   startOfWeek,
   weekDays,
 } from "@/lib/date/day";
 import { faNum, faPercent } from "@/lib/utils/number";
+import { faDuration, faGoal } from "@/lib/utils/duration";
+import { barValue, progressTone } from "@/lib/utils/progress";
 import { computeDayScores } from "@/lib/domain/stats";
 import { flexibleProgressForWeek, scoreWeek } from "@/lib/domain/scoring";
 import { backlogTasks } from "@/lib/domain/selectors";
+import type { Entry } from "@/lib/domain/types";
 import { useApp } from "@/lib/store/AppStore";
 import { useToast } from "@/components/ui/Toast";
 import { Button, IconButton } from "@/components/ui/Button";
@@ -24,6 +28,7 @@ import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { Menu } from "@/components/ui/Menu";
 import { QuickAdd } from "@/components/tasks/QuickAdd";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { LogTimeDialog } from "@/components/tasks/LogTimeDialog";
 import { DayColumn } from "@/components/week/DayColumn";
 
 export default function WeekPage() {
@@ -37,6 +42,7 @@ export default function WeekPage() {
     taskId: string | null;
     day: DayKey | null;
   }>({ open: false, taskId: null, day: null });
+  const [logging, setLogging] = useState<Entry | null>(null);
 
   const anchor = selectedAnchor ?? today;
   const days = useMemo(() => weekDays(anchor), [anchor]);
@@ -44,35 +50,41 @@ export default function WeekPage() {
     setSelectedAnchor(startOfWeek(next) === startOfWeek(today) ? null : next);
 
   const summary = useMemo(() => {
-    // The headline counts the days that have actually happened. Weekly quotas
-    // are a separate promise and get their own row, so a Saturday morning does
-    // not read as a failed week.
-    const scores = computeDayScores(data.entries, days);
-    const week = scoreWeek(scores, [], data.settings.dailyGoal);
+    // The headline is the hours studied so far this week, not a percentage:
+    // «۱۰ ساعت تا امروز» is the number a student actually keeps in their head.
+    // Days still ahead are excluded from it, so a Saturday morning does not
+    // read as a failed week.
+    const scores = computeDayScores(data.entries, days, data.settings);
+    const week = scoreWeek(scores, data.settings);
+
+    const elapsed = scores.filter(
+      (score) => compareDays(score.day, today) <= 0,
+    );
+    const toDate = scoreWeek(elapsed, data.settings);
 
     const previousDays = weekDays(addDays(days[0], -7));
     const previous = scoreWeek(
-      computeDayScores(data.entries, previousDays),
-      [],
-      data.settings.dailyGoal,
+      computeDayScores(data.entries, previousDays, data.settings),
+      data.settings,
     );
 
     return {
       week,
+      toDate,
       flexible: flexibleProgressForWeek(data.routines, data.entries, days),
-      delta:
-        week.ratio !== null && previous.ratio !== null
-          ? week.ratio - previous.ratio
-          : null,
+      delta: toDate.minutes - previous.minutes,
+      previousMinutes: previous.minutes,
     };
-  }, [data, days]);
+  }, [data, days, today]);
 
   const backlog = useMemo(() => backlogTasks(data), [data]);
   const isCurrentWeek = startOfWeek(today) === days[0];
 
   if (!ready) return <ScreenSkeleton rows={4} />;
 
-  const { week, delta, flexible } = summary;
+  const { week, toDate, delta, flexible } = summary;
+  // Before today arrives in this week, the "so far" figure is the whole week.
+  const elapsed = isCurrentWeek ? toDate : week;
 
   return (
     <>
@@ -113,10 +125,23 @@ export default function WeekPage() {
         <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
           <div>
             <p className="text-[11px] text-muted">
-              {isCurrentWeek ? "پایبندی هفته تا امروز" : "پایبندی هفته"}
+              {isCurrentWeek ? "ساعت مطالعه هفته تا امروز" : "ساعت مطالعه هفته"}
             </p>
             <p className="hz-tnum mt-1 text-3xl font-bold leading-none text-fg">
-              {week.ratio === null ? "—" : `${faPercent(week.ratio)}٪`}
+              {faDuration(elapsed.minutes, { short: true, zero: "۰ ساعت" })}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[11px] text-muted">هدف هفته</p>
+            <p className="hz-tnum mt-1 text-lg font-semibold text-fg">
+              {faGoal(week.goalMinutes)}
+              {week.ratio !== null && (
+                <span className="text-[12px] font-normal text-muted">
+                  {" "}
+                  · {faPercent(week.ratio)}٪
+                </span>
+              )}
             </p>
           </div>
 
@@ -132,52 +157,33 @@ export default function WeekPage() {
           </div>
 
           <div>
-            <p className="text-[11px] text-muted">کارهای انجام‌شده</p>
-            <p className="hz-tnum mt-1 text-lg font-semibold text-fg">
-              {faNum(week.doneCount)}
-              <span className="text-[12px] font-normal text-muted">
-                {" "}
-                از {faNum(week.totalCount)}
-              </span>
-            </p>
-          </div>
-
-          <div>
             <p className="text-[11px] text-muted">نسبت به هفته‌ی قبل</p>
             <p className="hz-tnum mt-1 flex items-center gap-1 text-lg font-semibold">
-              {delta === null ? (
-                <span className="text-muted">—</span>
-              ) : (
-                <span
-                  className={
-                    delta > 0.005
-                      ? "flex items-center gap-1 text-success"
-                      : delta < -0.005
-                        ? "flex items-center gap-1 text-danger"
-                        : "flex items-center gap-1 text-muted"
+              <span
+                className={
+                  delta > 5
+                    ? "flex items-center gap-1 text-success"
+                    : delta < -5
+                      ? "flex items-center gap-1 text-danger"
+                      : "flex items-center gap-1 text-muted"
+                }
+              >
+                <Icon
+                  name={
+                    delta > 5 ? "arrow-up" : delta < -5 ? "arrow-down" : "minus"
                   }
-                >
-                  <Icon
-                    name={
-                      delta > 0.005
-                        ? "arrow-up"
-                        : delta < -0.005
-                          ? "arrow-down"
-                          : "minus"
-                    }
-                    size="0.85em"
-                  />
-                  {faPercent(Math.abs(delta))}٪
-                </span>
-              )}
+                  size="0.85em"
+                />
+                {faDuration(Math.abs(delta), { short: true, zero: "۰" })}
+              </span>
             </p>
           </div>
         </div>
 
         <ProgressBar
-          value={week.ratio ?? 0}
+          value={barValue(week.ratio)}
           className="mt-4"
-          tone={week.ratio !== null && week.ratio >= 1 ? "accent" : "primary"}
+          tone={progressTone(week.ratio)}
         />
 
         {flexible.length > 0 && (
@@ -192,7 +198,8 @@ export default function WeekPage() {
                 >
                   {item.title}
                   <span className="hz-tnum text-muted">
-                    {faNum(item.done)}/{faNum(item.target)}
+                    {faNum(item.done)}/{faNum(item.target)} ·{" "}
+                    {faDuration(item.minutes, { short: true, zero: "۰" })}
                   </span>
                   <span className="flex gap-1" aria-hidden="true">
                     {Array.from({ length: item.target }, (_, index) => (
@@ -223,7 +230,7 @@ export default function WeekPage() {
             day={day}
             today={today}
             onAdd={(target) => setDialog({ open: true, taskId: null, day: target })}
-            onOpenTask={(taskId) => setDialog({ open: true, taskId, day: null })}
+            onLog={setLogging}
           />
         ))}
       </div>
@@ -309,6 +316,8 @@ export default function WeekPage() {
         defaultDay={dialog.day}
         onClose={() => setDialog({ open: false, taskId: null, day: null })}
       />
+
+      <LogTimeDialog entry={logging} onClose={() => setLogging(null)} />
     </>
   );
 }

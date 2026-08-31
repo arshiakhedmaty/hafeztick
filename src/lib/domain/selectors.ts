@@ -48,7 +48,7 @@ export function dayScoreFor(
   day: DayKey,
   today: DayKey,
 ): DayScore {
-  return scoreDay(day, entriesForDay(data, day, today));
+  return scoreDay(day, entriesForDay(data, day, today), data.settings);
 }
 
 /** Weekly progress of flexible routines for the week containing `day`. */

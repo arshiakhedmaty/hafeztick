@@ -6,7 +6,8 @@ import { faNum } from "@/lib/utils/number";
 import type { DayKey } from "@/lib/date/day";
 import type { Entry } from "@/lib/domain/types";
 import { entriesForDay, overdueEntries } from "@/lib/domain/selectors";
-import { scoreDay } from "@/lib/domain/scoring";
+import { isSuccessfulDay, scoreDay } from "@/lib/domain/scoring";
+import { successMinutesFor } from "@/lib/domain/goals";
 import { computeDayScores, comparePeriods, computeStreaks } from "@/lib/domain/stats";
 import { useApp } from "@/lib/store/AppStore";
 import { useToast } from "@/components/ui/Toast";
@@ -39,21 +40,34 @@ export default function TodayPage() {
 
   const view = useMemo(() => {
     const entries = entriesForDay(data, day, today);
-    const pending = entries.filter((entry) => entry.status === "pending");
+    // "Open" now means "no time logged yet" — a ticked box is no longer the
+    // thing that moves an item out of the working list.
+    const open = entries.filter(
+      (entry) => entry.status !== "skipped" && entry.minutes === 0,
+    );
+    const score = scoreDay(day, entries, data.settings);
     return {
       entries,
-      routines: pending.filter((entry) => entry.sourceType === "routine"),
-      tasks: pending.filter((entry) => entry.sourceType === "task"),
-      settled: entries.filter((entry) => entry.status !== "pending"),
-      score: scoreDay(day, entries),
+      routines: open.filter((entry) => entry.sourceType === "routine"),
+      tasks: open.filter((entry) => entry.sourceType === "task"),
+      settled: entries.filter(
+        (entry) => entry.status === "skipped" || entry.minutes > 0,
+      ),
+      score,
+      successful: isSuccessfulDay(score, data.settings),
+      successMinutes: successMinutesFor(data.settings, day),
     };
   }, [data, day, today]);
 
   const insight = useMemo(() => {
-    const scores = computeDayScores(data.entries, lastDays(today, 180));
+    const scores = computeDayScores(
+      data.entries,
+      lastDays(today, 180),
+      data.settings,
+    );
     return {
       streak: computeStreaks(scores, data.settings, today).current,
-      weekDelta: comparePeriods(data.entries, today, 7).delta,
+      weekDelta: comparePeriods(data.entries, today, 7, data.settings).delta,
     };
   }, [data.entries, data.settings, today]);
 
@@ -75,7 +89,8 @@ export default function TodayPage() {
 
       <DaySummary
         score={view.score}
-        goal={data.settings.dailyGoal}
+        successMinutes={view.successMinutes}
+        successful={view.successful}
         streak={insight.streak}
         weekDelta={insight.weekDelta}
       />
@@ -111,7 +126,7 @@ export default function TodayPage() {
         <EmptyState
           icon="sparkle"
           title="حافظ‌تیک آماده است"
-          description="با چند روتین ساده شروع کن، یا اولین کار امروزت را بالا بنویس. آمار و نمودارها به‌مرور از همین تیک‌ها ساخته می‌شوند."
+          description="با چند روتین ساده شروع کن، یا اولین کار امروزت را بالا بنویس. برای هر کار زمانی که صرفش کرده‌ای را ثبت می‌کنی و آمار از همین ساعت‌ها ساخته می‌شود."
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Button
@@ -138,7 +153,9 @@ export default function TodayPage() {
         <div className="space-y-6">
           {view.routines.length > 0 && (
             <section>
-              <SectionTitle count={view.routines.length}>روتین‌های امروز</SectionTitle>
+              <SectionTitle count={view.routines.length}>
+                روتین‌های امروز
+              </SectionTitle>
               <ul className="hz-stagger">
                 {view.routines.map((entry, index) => (
                   <EntryRow
@@ -173,8 +190,8 @@ export default function TodayPage() {
             <EmptyState
               compact
               icon="check"
-              title="همه‌چیز این روز تمام شد"
-              description="چیزی برای انجام باقی نمانده."
+              title="برای همه‌ی کارهای این روز زمان ثبت شد"
+              description="چیزی بدون زمان باقی نمانده."
             />
           )}
 
@@ -198,7 +215,7 @@ export default function TodayPage() {
                   name={showDone ? "chevron-start" : "chevron-end"}
                   size="1em"
                 />
-                انجام‌شده‌ها
+                ثبت‌شده‌ها
                 <span className="hz-tnum rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px]">
                   {faNum(view.settled.length)}
                 </span>

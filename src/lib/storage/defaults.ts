@@ -2,12 +2,18 @@ import { todayKey } from "../date/day";
 import { uid } from "../utils/id";
 import type { AppData, Category, Routine, Settings } from "../domain/types";
 
-export const DATA_VERSION = 1;
+/** v2 moved every progress number from tick counts to logged minutes. */
+export const DATA_VERSION = 2;
+
+/** Five hours a day, and seventy percent of it makes the day a success. */
+export const DEFAULT_DAILY_GOAL_MINUTES = 300;
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
   displayName: "",
-  dailyGoal: 0.7,
+  dailyGoalMinutes: DEFAULT_DAILY_GOAL_MINUTES,
+  weekdayGoalMinutes: [null, null, null, null, null, null, null],
+  successThreshold: 0.7,
   restDays: [],
   reduceMotion: false,
   onboarded: false,

@@ -5,13 +5,18 @@ import {
   weekDays,
   weekdayIndex,
 } from "../date/day";
+import { type GoalSettings, goalMinutesFor } from "./goals";
 import {
   type DayScore,
   type FlexibleProgress,
+  type WeekScore,
+  averageMinutes,
   averageRatio,
   flexibleProgressForWeek,
+  isSuccessfulDay,
   scoreDay,
   scoreWeek,
+  totalMinutes,
 } from "./scoring";
 import type { AppData, Category, Entry, Routine, Settings } from "./types";
 import { routineOccursOn } from "./schedule";
@@ -27,15 +32,19 @@ export function groupEntriesByDay(entries: Entry[]): Map<DayKey, Entry[]> {
   return map;
 }
 
-export function computeDayScores(entries: Entry[], days: DayKey[]): DayScore[] {
+export function computeDayScores(
+  entries: Entry[],
+  days: DayKey[],
+  settings: GoalSettings,
+): DayScore[] {
   const byDay = groupEntriesByDay(entries);
-  return days.map((day) => scoreDay(day, byDay.get(day) ?? []));
+  return days.map((day) => scoreDay(day, byDay.get(day) ?? [], settings));
 }
 
 export interface StreakInfo {
   current: number;
   best: number;
-  /** Days that were neutral (rest day or nothing planned) inside the streak. */
+  /** Days that were neutral (rest day or unscored) inside the streak. */
   neutralInCurrent: number;
 }
 
@@ -44,23 +53,23 @@ function isNeutralDay(score: DayScore, restDays: number[]): boolean {
 }
 
 /**
- * A streak counts consecutive successful days, where "rest days" and days with
- * no plan are neutral: they neither extend nor break it. Today is never
- * allowed to break a streak, because the day is not over yet.
+ * A streak counts consecutive successful days, where "rest days" and days
+ * without an hour goal are neutral: they neither extend nor break it. Today is
+ * never allowed to break a streak, because the day is not over yet.
  */
 export function computeStreaks(
   scores: DayScore[],
-  settings: Pick<Settings, "dailyGoal" | "restDays">,
+  settings: Pick<Settings, "successThreshold" | "restDays">,
   today: DayKey,
 ): StreakInfo {
   const ordered = [...scores].sort((a, b) => compareDays(a.day, b.day));
-  const { dailyGoal, restDays } = settings;
+  const { restDays } = settings;
 
   let best = 0;
   let running = 0;
   for (const score of ordered) {
     if (isNeutralDay(score, restDays)) continue;
-    if ((score.ratio as number) >= dailyGoal) {
+    if (isSuccessfulDay(score, settings)) {
       running += 1;
       best = Math.max(best, running);
     } else {
@@ -77,8 +86,7 @@ export function computeStreaks(
       if (current > 0) neutralInCurrent += 1;
       continue;
     }
-    const success = (score.ratio as number) >= dailyGoal;
-    if (success) {
+    if (isSuccessfulDay(score, settings)) {
       current += 1;
       continue;
     }
@@ -91,9 +99,10 @@ export function computeStreaks(
 }
 
 export interface PeriodComparison {
+  /** Average minutes per scored day in the current window. */
   current: number | null;
   previous: number | null;
-  /** Percentage-point difference, null when either side has no data. */
+  /** Difference in minutes, null when either side has no data. */
   delta: number | null;
 }
 
@@ -102,12 +111,13 @@ export function comparePeriods(
   entries: Entry[],
   today: DayKey,
   window: number,
+  settings: GoalSettings,
 ): PeriodComparison {
   const currentDays = lastDays(today, window);
   const previousDays = lastDays(currentDays[0], window + 1).slice(0, window);
 
-  const current = averageRatio(computeDayScores(entries, currentDays));
-  const previous = averageRatio(computeDayScores(entries, previousDays));
+  const current = averageMinutes(computeDayScores(entries, currentDays, settings));
+  const previous = averageMinutes(computeDayScores(entries, previousDays, settings));
 
   return {
     current,
@@ -120,29 +130,45 @@ export interface CategoryStat {
   categoryId: string | null;
   name: string;
   color: Category["color"];
-  done: number;
-  total: number;
-  ratio: number | null;
+  /** Minutes logged in this category over the window. */
+  minutes: number;
+  /** Share of all logged minutes, 0..1 — what the bar length means. */
+  share: number;
+  /** Items that carried time, for context under the hours. */
+  loggedCount: number;
 }
 
+/**
+ * Where the hours actually went.
+ *
+ * The headline per category is time, not a completion percentage: «پروژه: ۲
+ * ساعت» answers the question a student is really asking.
+ */
 export function categoryBreakdown(
   entries: Entry[],
   categories: Category[],
   days: DayKey[],
 ): CategoryStat[] {
   const daySet = new Set(days);
-  const buckets = new Map<string, { done: number; total: number }>();
+  const buckets = new Map<string, { minutes: number; loggedCount: number }>();
+  let grandTotal = 0;
 
   for (const entry of entries) {
     if (!daySet.has(entry.day) || entry.status === "skipped") continue;
+    const minutes = Math.max(0, entry.minutes ?? 0);
+    if (minutes === 0) continue;
+
     const key = entry.categoryId ?? "__none__";
-    const bucket = buckets.get(key) ?? { done: 0, total: 0 };
-    bucket.total += 1;
-    if (entry.status === "done") bucket.done += 1;
+    const bucket = buckets.get(key) ?? { minutes: 0, loggedCount: 0 };
+    bucket.minutes += minutes;
+    bucket.loggedCount += 1;
     buckets.set(key, bucket);
+    grandTotal += minutes;
   }
 
+  const share = (minutes: number) => (grandTotal > 0 ? minutes / grandTotal : 0);
   const stats: CategoryStat[] = [];
+
   for (const category of categories) {
     const bucket = buckets.get(category.id);
     if (!bucket) continue;
@@ -150,9 +176,9 @@ export function categoryBreakdown(
       categoryId: category.id,
       name: category.name,
       color: category.color,
-      done: bucket.done,
-      total: bucket.total,
-      ratio: bucket.total > 0 ? bucket.done / bucket.total : null,
+      minutes: bucket.minutes,
+      share: share(bucket.minutes),
+      loggedCount: bucket.loggedCount,
     });
   }
 
@@ -162,26 +188,31 @@ export function categoryBreakdown(
       categoryId: null,
       name: "بدون دسته",
       color: "slate",
-      done: none.done,
-      total: none.total,
-      ratio: none.total > 0 ? none.done / none.total : null,
+      minutes: none.minutes,
+      share: share(none.minutes),
+      loggedCount: none.loggedCount,
     });
   }
 
-  return stats.sort((a, b) => b.total - a.total);
+  return stats.sort((a, b) => b.minutes - a.minutes);
 }
 
 export interface RoutineStat {
   routineId: string;
   title: string;
   color: Category["color"];
+  /** Minutes logged against this routine over the window. */
+  minutes: number;
+  /** Days it was actually done, out of the days it was planned. */
   done: number;
   planned: number;
   ratio: number | null;
+  /** Average minutes on the days it was done. */
+  averageMinutes: number | null;
   currentStreak: number;
 }
 
-/** Per-routine consistency over a window of days. */
+/** Per-routine consistency, and the hours behind it, over a window of days. */
 export function routineConsistency(
   data: Pick<AppData, "routines" | "entries" | "categories">,
   days: DayKey[],
@@ -207,11 +238,15 @@ export function routineConsistency(
         compareDays(a.day, b.day),
       );
       const counted = entries.filter((entry) => entry.status !== "skipped");
-      const done = counted.filter((entry) => entry.status === "done").length;
+      const doneEntries = counted.filter((entry) => (entry.minutes ?? 0) > 0);
+      const minutes = doneEntries.reduce(
+        (sum, entry) => sum + (entry.minutes ?? 0),
+        0,
+      );
 
       let currentStreak = 0;
       for (let i = counted.length - 1; i >= 0; i -= 1) {
-        if (counted[i].status === "done") currentStreak += 1;
+        if ((counted[i].minutes ?? 0) > 0) currentStreak += 1;
         else break;
       }
 
@@ -219,35 +254,57 @@ export function routineConsistency(
         routineId: routine.id,
         title: routine.title,
         color: colorOf(routine.categoryId),
-        done,
+        minutes,
+        done: doneEntries.length,
         planned: counted.length,
-        ratio: counted.length > 0 ? done / counted.length : null,
+        ratio: counted.length > 0 ? doneEntries.length / counted.length : null,
+        averageMinutes:
+          doneEntries.length > 0 ? minutes / doneEntries.length : null,
         currentStreak,
       };
     })
-    .filter((stat) => stat.planned > 0)
-    .sort((a, b) => (b.ratio ?? 0) - (a.ratio ?? 0));
+    .filter((stat) => stat.planned > 0 || stat.minutes > 0)
+    .sort((a, b) => b.minutes - a.minutes);
 }
 
 export interface WeekdayStat {
   weekday: number;
+  /** Average share of that weekday's goal that gets reached. */
   ratio: number | null;
+  /** Average minutes studied on that weekday. */
+  minutes: number | null;
+  /** The goal that weekday carries, for the label under the bar. */
+  goalMinutes: number;
   sampleSize: number;
 }
 
-export function weekdayBreakdown(scores: DayScore[]): WeekdayStat[] {
-  const buckets = Array.from({ length: 7 }, () => ({ sum: 0, count: 0 }));
+export function weekdayBreakdown(
+  scores: DayScore[],
+  settings: GoalSettings,
+  reference: DayKey,
+): WeekdayStat[] {
+  const buckets = Array.from({ length: 7 }, () => ({
+    ratioSum: 0,
+    minuteSum: 0,
+    count: 0,
+  }));
 
   for (const score of scores) {
     if (score.ratio === null) continue;
     const bucket = buckets[weekdayIndex(score.day)];
-    bucket.sum += score.ratio;
+    bucket.ratioSum += score.ratio;
+    bucket.minuteSum += score.minutes;
     bucket.count += 1;
   }
 
+  // Any day of the reference week resolves that weekday's configured goal.
+  const referenceWeek = weekDays(reference);
+
   return buckets.map((bucket, weekday) => ({
     weekday,
-    ratio: bucket.count > 0 ? bucket.sum / bucket.count : null,
+    ratio: bucket.count > 0 ? bucket.ratioSum / bucket.count : null,
+    minutes: bucket.count > 0 ? bucket.minuteSum / bucket.count : null,
+    goalMinutes: goalMinutesFor(settings, referenceWeek[weekday]),
     sampleSize: bucket.count,
   }));
 }
@@ -255,7 +312,11 @@ export function weekdayBreakdown(scores: DayScore[]): WeekdayStat[] {
 export interface TrendPoint {
   day: DayKey;
   ratio: number | null;
+  minutes: number;
+  /** Trailing seven-day average of the ratio. */
   average: number | null;
+  /** Trailing seven-day average of the minutes. */
+  averageMinutes: number | null;
 }
 
 /** Daily ratios plus a trailing moving average, for the trend chart. */
@@ -265,7 +326,9 @@ export function buildTrend(scores: DayScore[], window = 7): TrendPoint[] {
     return {
       day: score.day,
       ratio: score.ratio,
+      minutes: score.minutes,
       average: averageRatio(slice),
+      averageMinutes: averageMinutes(slice),
     };
   });
 }
@@ -284,13 +347,16 @@ export interface StatsOverview {
     days: DayKey[];
     scores: DayScore[];
     flexible: FlexibleProgress[];
-    summary: ReturnType<typeof scoreWeek>;
+    summary: WeekScore;
   };
   totals: {
-    doneEntries: number;
-    plannedEntries: number;
+    /** Minutes logged over the whole range. */
+    minutes: number;
+    /** Minutes the range asked for. */
+    goalMinutes: number;
     activeDays: number;
     successfulDays: number;
+    averageMinutes: number | null;
     averageRatio: number | null;
   };
 }
@@ -301,59 +367,59 @@ export function buildStatsOverview(
   today: DayKey,
   rangeDays = 90,
 ): StatsOverview {
+  const settings = data.settings;
   const days = lastDays(today, rangeDays);
-  const scores = computeDayScores(data.entries, days);
+  const scores = computeDayScores(data.entries, days, settings);
   const currentWeek = weekDays(today);
-  const weekScores = computeDayScores(data.entries, currentWeek);
+  const weekScores = computeDayScores(data.entries, currentWeek, settings);
   const flexible = flexibleProgressForWeek(
     data.routines,
     data.entries,
     currentWeek,
   );
 
-  const plannedEntries = scores.reduce((sum, s) => sum + s.totalCount, 0);
-  const doneEntries = scores.reduce((sum, s) => sum + s.doneCount, 0);
   const activeDays = scores.filter((s) => s.ratio !== null).length;
-  const successfulDays = scores.filter(
-    (s) => s.ratio !== null && s.ratio >= data.settings.dailyGoal,
-  ).length;
+  const successfulDays = scores.filter((s) => isSuccessfulDay(s, settings)).length;
 
   return {
     days,
     scores,
     trend: buildTrend(scores),
-    streaks: computeStreaks(scores, data.settings, today),
-    weekOverWeek: comparePeriods(data.entries, today, 7),
-    monthOverMonth: comparePeriods(data.entries, today, 30),
+    streaks: computeStreaks(scores, settings, today),
+    weekOverWeek: comparePeriods(data.entries, today, 7, settings),
+    monthOverMonth: comparePeriods(data.entries, today, 30, settings),
     categories: categoryBreakdown(data.entries, data.categories, days),
     routines: routineConsistency(data, lastDays(today, 30)),
-    weekdays: weekdayBreakdown(scores),
+    weekdays: weekdayBreakdown(scores, settings, today),
     thisWeek: {
       days: currentWeek,
       scores: weekScores,
       flexible,
-      summary: scoreWeek(weekScores, flexible, data.settings.dailyGoal),
+      summary: scoreWeek(weekScores, settings),
     },
     totals: {
-      doneEntries,
-      plannedEntries,
+      minutes: totalMinutes(scores),
+      goalMinutes: scores.reduce((sum, s) => sum + s.goalMinutes, 0),
       activeDays,
       successfulDays,
+      averageMinutes: averageMinutes(scores),
       averageRatio: averageRatio(scores),
     },
   };
 }
 
-/** True when a routine is expected today but not yet ticked. */
+/** True when a routine is expected today but has no time logged yet. */
 export function pendingRoutinesFor(
   routines: Routine[],
   entries: Entry[],
   day: DayKey,
 ): Routine[] {
-  const doneIds = new Set(
-    entries.filter((e) => e.day === day && e.status === "done").map((e) => e.sourceId),
+  const loggedIds = new Set(
+    entries
+      .filter((e) => e.day === day && (e.minutes ?? 0) > 0)
+      .map((e) => e.sourceId),
   );
   return routines.filter(
-    (routine) => routineOccursOn(routine, day) && !doneIds.has(routine.id),
+    (routine) => routineOccursOn(routine, day) && !loggedIds.has(routine.id),
   );
 }
