@@ -61,6 +61,10 @@ function normalizeSettings(raw: unknown): Settings {
     successThreshold: Math.min(1, Math.max(0.1, threshold)),
     restDays: Array.isArray(input.restDays) ? input.restDays : [],
     onboarded: input.onboarded ?? DEFAULT_SETTINGS.onboarded,
+    lastExportAt:
+      typeof input.lastExportAt === "number" ? input.lastExportAt : null,
+    backupRemindedAt:
+      typeof input.backupRemindedAt === "number" ? input.backupRemindedAt : null,
   };
 }
 

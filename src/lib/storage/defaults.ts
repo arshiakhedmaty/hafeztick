@@ -15,6 +15,8 @@ export const DEFAULT_SETTINGS: Settings = {
   successThreshold: 0.7,
   restDays: [],
   onboarded: false,
+  lastExportAt: null,
+  backupRemindedAt: null,
 };
 
 export function defaultCategories(): Category[] {

@@ -96,6 +96,7 @@ export default function SettingsPage() {
     link.download = `hafeztick-backup-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(url);
+    actions.markExported();
     toast({ message: "فایل پشتیبان ساخته شد", icon: "download" });
   };
 

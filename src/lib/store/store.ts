@@ -455,6 +455,16 @@ export class AppStore {
     }));
   };
 
+  /** Records that a backup was taken, which is what stops the reminder. */
+  markExported = (): void => {
+    this.updateSettings({ lastExportAt: Date.now(), backupRemindedAt: null });
+  };
+
+  /** Puts the backup reminder away for a while without taking one. */
+  snoozeBackupReminder = (): void => {
+    this.updateSettings({ backupRemindedAt: Date.now() });
+  };
+
   loadSamplePlan = (): void => {
     this.update((previous) =>
       this.resync({

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppStoreProvider } from "@/lib/store/AppStore";
 import { ThemeSync } from "@/components/layout/ThemeSync";
+import { OfflineReady } from "@/components/layout/OfflineReady";
 import { AppShell } from "@/components/layout/AppShell";
 import { ToastProvider } from "@/components/ui/Toast";
 import { STORAGE_KEY } from "@/lib/storage/repository";
@@ -73,6 +74,7 @@ export default function RootLayout({
       <body className="min-h-dvh bg-bg text-fg antialiased">
         <AppStoreProvider>
           <ThemeSync />
+          <OfflineReady />
           <ToastProvider>
             <AppShell>{children}</AppShell>
           </ToastProvider>
