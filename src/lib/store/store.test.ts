@@ -25,6 +25,39 @@ function mounted(seed?: AppData): AppStore {
   return store;
 }
 
+describe("persistence", () => {
+  it("writes through immediately where there is no window to debounce with", () => {
+    // Server rendering and the test runner both take this path.
+    const repository = memoryRepository(createEmptyData());
+    const store = new AppStore(repository);
+    store.subscribe(() => {});
+
+    store.addTask({ title: "زبان", day: null });
+    expect(repository.load()?.tasks).toHaveLength(1);
+  });
+
+  it("flushSave is safe to call with nothing outstanding", () => {
+    const store = mounted();
+    expect(() => {
+      store.flushSave();
+      store.flushSave();
+    }).not.toThrow();
+  });
+
+  it("a reset is not undone by a write that was already queued", () => {
+    const repository = memoryRepository(createEmptyData());
+    const store = new AppStore(repository);
+    store.subscribe(() => {});
+
+    store.addTask({ title: "زبان", day: null });
+    store.resetAll();
+    store.flushSave();
+
+    // The fresh empty state is persisted; the task must not come back with it.
+    expect(repository.load()?.tasks ?? []).toHaveLength(0);
+  });
+});
+
 describe("moveTasks", () => {
   it("moves every named task in one step", () => {
     const store = mounted();

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { ReactNode, SVGProps } from "react";
 
 export type IconName =
@@ -138,7 +139,7 @@ export interface IconProps extends Omit<SVGProps<SVGSVGElement>, "name"> {
   size?: number | string;
 }
 
-export function Icon({ name, size = "1.25em", className, ...rest }: IconProps) {
+function IconBase({ name, size = "1.25em", className, ...rest }: IconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -158,3 +159,9 @@ export function Icon({ name, size = "1.25em", className, ...rest }: IconProps) {
     </svg>
   );
 }
+
+/**
+ * Memoised because it is pure and appears dozens of times on every screen,
+ * while the store hands every consumer a fresh snapshot on each mutation.
+ */
+export const Icon = memo(IconBase);

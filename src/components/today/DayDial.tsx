@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { cn } from "@/lib/utils/cn";
 import { faDuration, faGoal } from "@/lib/utils/duration";
 
@@ -15,7 +16,7 @@ import { faDuration, faGoal } from "@/lib/utils/duration";
  * breakage rather than achievement. They get their own thin gold arc just
  * outside it: the dial grows instead of doubling back.
  */
-export function DayDial({
+function DayDialBase({
   minutes,
   goalMinutes,
   size = 168,
@@ -147,3 +148,5 @@ export function DayDial({
     </div>
   );
 }
+
+export const DayDial = memo(DayDialBase);

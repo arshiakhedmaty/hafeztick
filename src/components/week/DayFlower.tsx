@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { cn } from "@/lib/utils/cn";
 import { faPercent } from "@/lib/utils/number";
 import { faDuration, faGoal } from "@/lib/utils/duration";
@@ -28,7 +29,7 @@ const LEAF_SPACING = 360 / 7;
 /** The pointed almond of Persian illumination. */
 const LEAF = "M 0 -12 C 7 -20, 8.5 -31, 0 -42 C -8.5 -31, -7 -20, 0 -12 Z";
 
-export function DayFlower({
+function DayFlowerBase({
   weekday,
   ratio,
   successful,
@@ -124,6 +125,9 @@ export function DayFlower({
     </svg>
   );
 }
+
+/** Every prop is a primitive, so a shallow compare is exactly right here. */
+export const DayFlower = memo(DayFlowerBase);
 
 /** The sentence under a flower: hours done against the day's goal. */
 export function flowerHint(minutes: number, goalMinutes: number): string {

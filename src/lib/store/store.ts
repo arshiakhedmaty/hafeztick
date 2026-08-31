@@ -111,11 +111,62 @@ export class AppStore {
     for (const listener of this.listeners) listener();
   };
 
+  /**
+   * How long a change may sit in memory before it reaches storage.
+   *
+   * Serialising the whole store and handing it to localStorage is synchronous
+   * and grows with history — around 16ms for two years of use on a desktop,
+   * several times that on a phone. Paying it inside every keystroke made
+   * typing a goal visibly lag, so it moves off the interaction path: the
+   * snapshot updates and renders immediately, and the write follows.
+   */
+  private static readonly SAVE_DELAY = 250;
+
+  private pendingSave: number | null = null;
+  private unsaved: AppData | null = null;
+  private flushListener: (() => void) | null = null;
+
   private commit(data: AppData, today = this.snapshot.today): void {
     this.snapshot = { data, today, ready: true };
-    this.repository.save(data);
+    this.scheduleSave(data);
     this.emit();
   }
+
+  private scheduleSave(data: AppData): void {
+    this.unsaved = data;
+
+    if (typeof window === "undefined") {
+      this.flushSave();
+      return;
+    }
+
+    // Anything that can end the page flushes first, so the debounce window can
+    // never be the reason a change is lost.
+    if (!this.flushListener) {
+      this.flushListener = () => this.flushSave();
+      window.addEventListener("pagehide", this.flushListener);
+      document.addEventListener("visibilitychange", this.flushListener);
+    }
+
+    if (this.pendingSave !== null) window.clearTimeout(this.pendingSave);
+    this.pendingSave = window.setTimeout(
+      () => this.flushSave(),
+      AppStore.SAVE_DELAY,
+    );
+  }
+
+  /** Writes whatever is outstanding, immediately. */
+  flushSave = (): void => {
+    if (this.pendingSave !== null && typeof window !== "undefined") {
+      window.clearTimeout(this.pendingSave);
+    }
+    this.pendingSave = null;
+
+    const data = this.unsaved;
+    if (!data) return;
+    this.unsaved = null;
+    this.repository.save(data);
+  };
 
   private update(fn: (previous: AppData) => AppData): void {
     this.commit(fn(this.snapshot.data));
@@ -155,6 +206,13 @@ export class AppStore {
     }
     this.stopClockListener?.();
     this.stopClockListener = null;
+
+    this.flushSave();
+    if (this.flushListener) {
+      window.removeEventListener("pagehide", this.flushListener);
+      document.removeEventListener("visibilitychange", this.flushListener);
+      this.flushListener = null;
+    }
   }
 
   /** Re-runs the plan for days that are still editable (today and later). */
@@ -484,6 +542,12 @@ export class AppStore {
 
   resetAll = (): void => {
     this.remember();
+    // A queued write of the old data would otherwise land after the clear.
+    if (this.pendingSave !== null && typeof window !== "undefined") {
+      window.clearTimeout(this.pendingSave);
+    }
+    this.pendingSave = null;
+    this.unsaved = null;
     this.repository.clear();
     this.commit(createEmptyData());
   };

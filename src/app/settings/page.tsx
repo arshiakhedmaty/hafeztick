@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { faNum, faPercent } from "@/lib/utils/number";
 import { faClock, faDuration, faGoal } from "@/lib/utils/duration";
@@ -31,7 +31,7 @@ const THRESHOLDS = [0.5, 0.6, 0.7, 0.8, 1];
  * WCAG 2.2 target minimum of 24×24 with the dot drawn inside a larger hit
  * area, so the row stays visually light without being unusable on a phone.
  */
-function ColorPicker({
+const ColorPicker = memo(function ColorPicker({
   value,
   onChange,
   label,
@@ -69,7 +69,28 @@ function ColorPicker({
       })}
     </div>
   );
-}
+});
+
+/** Binds a category's id to the shared handler without a fresh closure. */
+const CategoryColorPicker = memo(function CategoryColorPicker({
+  id,
+  name,
+  value,
+  onChange,
+}: {
+  id: string;
+  name: string;
+  value: CategoryColor;
+  onChange: (id: string, color: CategoryColor) => void;
+}) {
+  const handle = useCallback(
+    (color: CategoryColor) => onChange(id, color),
+    [id, onChange],
+  );
+  return (
+    <ColorPicker label={`رنگ دسته‌ی ${name}`} value={value} onChange={handle} />
+  );
+});
 
 export default function SettingsPage() {
   const { data, actions, ready } = useApp();
@@ -79,6 +100,11 @@ export default function SettingsPage() {
   const [newCategory, setNewCategory] = useState("");
   const [newColor, setNewColor] = useState<CategoryColor>("teal");
   const [confirmReset, setConfirmReset] = useState(false);
+
+  const recolour = useCallback(
+    (id: string, color: CategoryColor) => actions.updateCategory(id, { color }),
+    [actions],
+  );
 
   if (!ready) return <ScreenSkeleton rows={3} />;
 
@@ -345,12 +371,11 @@ export default function SettingsPage() {
                 />
                 {/* Nine swatches need ~250px; below that they take their own
                     line rather than squeezing the name field to nothing. */}
-                <ColorPicker
-                  label={`رنگ دسته‌ی ${category.name}`}
+                <CategoryColorPicker
+                  id={category.id}
+                  name={category.name}
                   value={category.color}
-                  onChange={(color) =>
-                    actions.updateCategory(category.id, { color })
-                  }
+                  onChange={recolour}
                 />
                 <IconButton
                   icon="trash"
