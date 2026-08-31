@@ -13,10 +13,9 @@ import { useToast } from "@/components/ui/Toast";
 import { Button, IconButton } from "@/components/ui/Button";
 import { Card, CardHeader, PageHeader } from "@/components/ui/Card";
 import { DurationField } from "@/components/ui/DurationField";
-import { Label, TextField, Toggle } from "@/components/ui/Field";
+import { Label } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 /** Common daily study targets, in minutes. */
 const GOAL_PRESETS = [120, 180, 240, 300, 360, 480];
@@ -138,32 +137,6 @@ export default function SettingsPage() {
       />
 
       <div className="space-y-5">
-        <Card>
-          <CardHeader title="نمایش" icon="sun" />
-          <div className="space-y-4">
-            <div>
-              <Label>حالت رنگی</Label>
-              <ThemeToggle />
-            </div>
-
-            <TextField
-              label="نام تو (اختیاری)"
-              value={settings.displayName}
-              placeholder="مثلاً: آرشیا"
-              onChange={(event) =>
-                actions.updateSettings({ displayName: event.target.value })
-              }
-            />
-
-            <Toggle
-              label="کاهش انیمیشن‌ها"
-              description="اگر حرکت اذیتت می‌کند، همه‌ی انیمیشن‌ها خاموش می‌شوند."
-              checked={settings.reduceMotion}
-              onChange={(value) => actions.updateSettings({ reduceMotion: value })}
-            />
-          </div>
-        </Card>
-
         <Card>
           <CardHeader
             title="هدف مطالعه"

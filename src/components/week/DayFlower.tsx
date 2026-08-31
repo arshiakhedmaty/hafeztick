@@ -7,32 +7,26 @@ import { progressStep } from "@/lib/utils/progress";
 import { WEEKDAY_NAMES } from "@/lib/date/jalali";
 
 /**
- * شمسه — the rosette that opens an illuminated Persian manuscript, here
- * carrying a day's study hours.
+ * The week, growing one leaf at a time.
  *
- * Each weekday keeps its own rosette: a fixed petal count and rotation, so the
- * week board reads as seven distinct places rather than seven identical
- * gauges. What changes is how far it has opened. Petals light one step at a
- * time as the hours accumulate, and only a day that actually cleared its
- * success threshold takes the gold of تذهیب — which is why gold means
- * something when you see it.
+ * Saturday carries a single leaf and each day adds one, so Friday closes the
+ * week with seven. The leaves fan out from the top at a fixed 360/7 spacing
+ * rather than dividing a circle evenly, which means the shape genuinely grows
+ * — a sprout on Saturday, a near-complete شمسه by Friday — instead of seven
+ * arrangements that merely differ. A day is identifiable by its silhouette
+ * alone, and the week reads as a sequence.
+ *
+ * How far the flower has opened is the day's hours against its own goal.
+ * Leaves light in order, the one at the frontier takes a half tint so a
+ * single-leaf Saturday still shows more than on-or-off, and only a day that
+ * cleared its success threshold takes the gold of تذهیب.
  */
 
-/** Petals, and the rotation that keeps neighbouring days from looking alike. */
-const SHAPES: { petals: number; rotate: number }[] = [
-  { petals: 8, rotate: 0 }, // شنبه
-  { petals: 6, rotate: 15 }, // یک‌شنبه
-  { petals: 12, rotate: 8 }, // دوشنبه
-  { petals: 7, rotate: 25 }, // سه‌شنبه
-  { petals: 10, rotate: 9 }, // چهارشنبه
-  { petals: 5, rotate: 36 }, // پنج‌شنبه
-  { petals: 9, rotate: 20 }, // جمعه
-];
+/** One seventh of a turn: Saturday's leaf and Friday's outermost pair agree. */
+const LEAF_SPACING = 360 / 7;
 
-/** One petal, drawn as the pointed almond of Persian illumination. */
-function petalPath(): string {
-  return "M 0 -13 C 7 -21, 8.5 -32, 0 -43 C -8.5 -32, -7 -21, 0 -13 Z";
-}
+/** The pointed almond of Persian illumination. */
+const LEAF = "M 0 -12 C 7 -20, 8.5 -31, 0 -42 C -8.5 -31, -7 -20, 0 -12 Z";
 
 export function DayFlower({
   weekday,
@@ -42,6 +36,7 @@ export function DayFlower({
   className,
   label,
 }: {
+  /** 0 = Saturday … 6 = Friday. Also the number of leaves, plus one. */
   weekday: number;
   /** Minutes logged ÷ that day's hour goal, or null when the day is unscored. */
   ratio: number | null;
@@ -50,14 +45,19 @@ export function DayFlower({
   className?: string;
   label?: string;
 }) {
-  const shape = SHAPES[weekday] ?? SHAPES[0];
+  const leaves = Math.min(7, Math.max(1, weekday + 1));
   const step = progressStep(ratio);
   const open = step === null ? 0 : step / 5;
-  const litPetals = Math.round(shape.petals * open);
+
+  // Leaves light in order; the frontier one is half-tinted, which is what
+  // keeps a one-leaf day from being merely on or off.
+  const grown = leaves * open;
+  const full = Math.floor(grown);
+  const frontier = grown - full;
 
   const tone = successful ? "var(--accent)" : "var(--primary)";
   const dormant = step === null;
-  const started = litPetals > 0;
+  const started = grown > 0;
 
   return (
     <svg
@@ -73,34 +73,35 @@ export function DayFlower({
         }`
       }
     >
-      <g transform={`rotate(${shape.rotate})`}>
-        {Array.from({ length: shape.petals }, (_, index) => {
-          const lit = index < litPetals;
-          const angle = (360 / shape.petals) * index;
-          return (
-            <path
-              key={index}
-              d={petalPath()}
-              transform={`rotate(${angle})`}
-              fill={lit ? tone : "var(--surface-2)"}
-              stroke={lit ? "transparent" : "var(--line)"}
-              strokeWidth="1.5"
-              strokeLinejoin="round"
-              opacity={lit ? 1 : dormant ? 0.45 : 0.8}
-              style={{
-                transition:
-                  "fill 460ms cubic-bezier(.22,1,.36,1), opacity 460ms ease",
-              }}
-            />
-          );
-        })}
-      </g>
+      {Array.from({ length: leaves }, (_, index) => {
+        const lit = index < full;
+        const half = index === full && frontier > 0.15;
+        // Fanned symmetrically about the top, so the shape opens outward.
+        const angle = (index - (leaves - 1) / 2) * LEAF_SPACING;
 
-      {/* The بند: the ring that binds the petals to the centre. */}
+        return (
+          <path
+            key={index}
+            d={LEAF}
+            transform={`rotate(${angle})`}
+            fill={lit || half ? tone : "var(--surface-2)"}
+            stroke={lit || half ? "transparent" : "var(--line)"}
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+            opacity={lit ? 1 : half ? 0.45 : dormant ? 0.4 : 0.75}
+            style={{
+              transition:
+                "fill 460ms cubic-bezier(.22,1,.36,1), opacity 460ms ease",
+            }}
+          />
+        );
+      })}
+
+      {/* The بند that binds the leaves to the centre. */}
       <circle
         cx="0"
         cy="0"
-        r="13.5"
+        r="12.5"
         fill="none"
         stroke={started ? tone : "var(--line)"}
         strokeWidth="2"
@@ -111,7 +112,7 @@ export function DayFlower({
       <circle
         cx="0"
         cy="0"
-        r="9"
+        r="8.5"
         fill={started ? tone : "var(--surface-2)"}
         style={{ transition: "fill 460ms cubic-bezier(.22,1,.36,1)" }}
       />
@@ -124,7 +125,7 @@ export function DayFlower({
   );
 }
 
-/** The sentence under a rosette: hours done against the day's goal. */
+/** The sentence under a flower: hours done against the day's goal. */
 export function flowerHint(minutes: number, goalMinutes: number): string {
   if (goalMinutes === 0) return "بدون هدف";
   return `${faDuration(minutes, { short: true, zero: "۰" })} از ${faGoal(goalMinutes)}`;

@@ -56,9 +56,19 @@ export function QuickAdd({
       className="rounded-card border border-line bg-surface p-2 shadow-card transition-shadow focus-within:shadow-float"
     >
       <div className="flex items-center gap-2">
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary">
+        {/*
+          The plus reads as the button, so it has to behave like one. Empty,
+          it puts the cursor in the field; once something is typed it submits,
+          which is what a person who reaches for a plus twice expects.
+        */}
+        <button
+          type={expanded ? "submit" : "button"}
+          onClick={expanded ? undefined : () => inputRef.current?.focus()}
+          aria-label={expanded ? "افزودن کار" : "نوشتن کار جدید"}
+          className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary transition-colors hover:bg-primary hover:text-primary-contrast"
+        >
           <Icon name="plus" size="1.15em" />
-        </span>
+        </button>
         <input
           ref={inputRef}
           value={title}

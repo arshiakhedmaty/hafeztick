@@ -101,7 +101,6 @@ export type ThemePreference = "system" | "light" | "dark";
 
 export interface Settings {
   theme: ThemePreference;
-  displayName: string;
   /** Default study target in minutes, used for any day without its own goal. */
   dailyGoalMinutes: number;
   /**
@@ -113,7 +112,6 @@ export interface Settings {
   successThreshold: number;
   /** Weekdays exempt from breaking a streak (0 = Saturday). */
   restDays: number[];
-  reduceMotion: boolean;
   onboarded: boolean;
 }
 

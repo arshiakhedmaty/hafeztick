@@ -4,13 +4,17 @@ import { useEffect } from "react";
 import { useApp } from "@/lib/store/AppStore";
 
 /**
- * Keeps <html> in sync with the user's theme and motion preferences.
- * The initial value is applied by the inline bootstrap script in the layout,
- * so this only handles changes made while the app is open.
+ * Keeps <html> in sync with the chosen theme. The initial value is applied by
+ * the inline bootstrap script in the layout, so this only handles changes
+ * made while the app is open.
+ *
+ * Motion is not mirrored here: the app honours the operating system's
+ * prefers-reduced-motion, which is where people set that once for everything
+ * rather than per site.
  */
 export function ThemeSync() {
   const { data, ready } = useApp();
-  const { theme, reduceMotion } = data.settings;
+  const { theme } = data.settings;
 
   useEffect(() => {
     if (!ready) return;
@@ -26,14 +30,6 @@ export function ThemeSync() {
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
   }, [theme, ready]);
-
-  useEffect(() => {
-    if (!ready) return;
-    document.documentElement.setAttribute(
-      "data-motion",
-      reduceMotion ? "reduced" : "full",
-    );
-  }, [reduceMotion, ready]);
 
   return null;
 }

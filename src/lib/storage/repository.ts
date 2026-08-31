@@ -49,9 +49,10 @@ function normalizeSettings(raw: unknown): Settings {
         ? input.dailyGoal
         : DEFAULT_SETTINGS.successThreshold;
 
+  // Built field by field rather than spread, so a setting the app has since
+  // dropped cannot ride back in from an old backup and be persisted forever.
   return {
-    ...DEFAULT_SETTINGS,
-    ...input,
+    theme: input.theme ?? DEFAULT_SETTINGS.theme,
     dailyGoalMinutes:
       typeof input.dailyGoalMinutes === "number"
         ? clampMinutes(input.dailyGoalMinutes)
@@ -59,6 +60,7 @@ function normalizeSettings(raw: unknown): Settings {
     weekdayGoalMinutes: weekday,
     successThreshold: Math.min(1, Math.max(0.1, threshold)),
     restDays: Array.isArray(input.restDays) ? input.restDays : [],
+    onboarded: input.onboarded ?? DEFAULT_SETTINGS.onboarded,
   };
 }
 

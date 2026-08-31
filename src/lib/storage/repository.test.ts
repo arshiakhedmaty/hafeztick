@@ -61,11 +61,18 @@ describe("normalize", () => {
     ]);
   });
 
-  it("keeps the rest of the old settings", () => {
+  it("keeps the settings that still exist", () => {
     const data = normalize(LEGACY);
     expect(data?.settings.theme).toBe("dark");
-    expect(data?.settings.displayName).toBe("آرشیا");
     expect(data?.settings.restDays).toEqual([6]);
+  });
+
+  it("ignores settings the app no longer has", () => {
+    // A backup written before displayName and reduceMotion were dropped must
+    // still open; the extra keys simply have nowhere to land.
+    const data = normalize(LEGACY);
+    expect(data).not.toBeNull();
+    expect("displayName" in (data?.settings ?? {})).toBe(false);
   });
 
   it("gives pre-v2 entries zero minutes instead of a made-up duration", () => {

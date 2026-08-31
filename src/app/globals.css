@@ -206,8 +206,8 @@ button {
 
 /* ---------------------------------------------------------------------------
    Motion
-   Every animation is short and purposeful. Users who ask for reduced motion —
-   through the OS or the app's own setting — get none of it.
+   Every animation is short and purposeful. Users who ask their operating
+   system for reduced motion get none of it.
 --------------------------------------------------------------------------- */
 
 @keyframes hz-tick {
@@ -330,14 +330,6 @@ button {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-[data-motion="reduced"] *,
-[data-motion="reduced"] *::before,
-[data-motion="reduced"] *::after {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
 }
 
 /* Utility: numbers that should never reshape when values change. */

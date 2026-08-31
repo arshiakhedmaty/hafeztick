@@ -10,12 +10,10 @@ export const DEFAULT_DAILY_GOAL_MINUTES = 300;
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
-  displayName: "",
   dailyGoalMinutes: DEFAULT_DAILY_GOAL_MINUTES,
   weekdayGoalMinutes: [null, null, null, null, null, null, null],
   successThreshold: 0.7,
   restDays: [],
-  reduceMotion: false,
   onboarded: false,
 };
 

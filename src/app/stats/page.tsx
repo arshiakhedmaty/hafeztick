@@ -105,7 +105,7 @@ function Comparison({ label, data }: { label: string; data: PeriodComparison }) 
 
 export default function StatsPage() {
   const { data, today, ready } = useApp();
-  const [range, setRange] = useState<Range>("90");
+  const [range, setRange] = useState<Range>("30");
 
   const overview = useMemo(
     () => buildStatsOverview(data, today, Number(range)),
