@@ -6,7 +6,7 @@ import { faNum, faPercent } from "@/lib/utils/number";
 import { faClock, faDuration, faGoal } from "@/lib/utils/duration";
 import { CATEGORY_COLORS, type CategoryColor } from "@/lib/domain/types";
 import { WEEKDAY_NAMES, WEEKDAY_SHORT } from "@/lib/date/jalali";
-import { categoryVar } from "@/lib/utils/colors";
+import { CATEGORY_COLOR_LABEL, categoryVar } from "@/lib/utils/colors";
 import { exportData } from "@/lib/storage/repository";
 import { useApp } from "@/lib/store/AppStore";
 import { useToast } from "@/components/ui/Toast";
@@ -23,6 +23,54 @@ const GOAL_PRESETS = [120, 180, 240, 300, 360, 480];
 
 /** Share of the day's hour goal that makes it a successful day. */
 const THRESHOLDS = [0.5, 0.6, 0.7, 0.8, 1];
+
+/**
+ * Picking one colour out of nine.
+ *
+ * It is a radio group, not nine unrelated buttons: that is what it means, and
+ * it is what lets one arrow key move through the row. Each swatch clears the
+ * WCAG 2.2 target minimum of 24×24 with the dot drawn inside a larger hit
+ * area, so the row stays visually light without being unusable on a phone.
+ */
+function ColorPicker({
+  value,
+  onChange,
+  label,
+}: {
+  value: CategoryColor;
+  onChange: (color: CategoryColor) => void;
+  label: string;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="flex shrink-0 gap-0.5">
+      {CATEGORY_COLORS.map((color) => {
+        const active = value === color;
+        return (
+          <button
+            key={color}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            aria-label={CATEGORY_COLOR_LABEL[color]}
+            title={CATEGORY_COLOR_LABEL[color]}
+            onClick={() => onChange(color)}
+            className="grid size-7 place-items-center rounded-full transition-colors hover:bg-surface-2"
+          >
+            <span
+              className={cn(
+                "size-4 rounded-full border-2 transition-transform",
+                active
+                  ? "scale-110 border-fg/40"
+                  : "border-transparent opacity-50",
+              )}
+              style={{ backgroundColor: categoryVar(color) }}
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { data, actions, ready } = useApp();
@@ -129,6 +177,7 @@ export default function SettingsPage() {
                 هدف روزانه (پیش‌فرض)
               </Label>
               <DurationField
+                name="هدف روزانه"
                 value={settings.dailyGoalMinutes}
                 onChange={(minutes) =>
                   actions.updateSettings({ dailyGoalMinutes: minutes })
@@ -180,6 +229,7 @@ export default function SettingsPage() {
 
                       <div className="min-w-44 flex-1">
                         <DurationField
+                          name={`هدف ${name}`}
                           value={effective}
                           onChange={(minutes) => setWeekdayGoal(index, minutes)}
                           presets={false}
@@ -305,7 +355,7 @@ export default function SettingsPage() {
             {categories.map((category) => (
               <li
                 key={category.id}
-                className="group flex items-center gap-2.5 rounded-xl border border-line px-3 py-2"
+                className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-xl border border-line px-3 py-2"
               >
                 <span
                   className="size-3 shrink-0 rounded-full"
@@ -317,25 +367,17 @@ export default function SettingsPage() {
                     actions.updateCategory(category.id, { name: event.target.value })
                   }
                   aria-label={`نام دسته‌ی ${category.name}`}
-                  className="min-w-0 flex-1 bg-transparent text-[13.5px] text-fg outline-none"
+                  className="w-32 min-w-0 flex-1 bg-transparent py-1 text-[13.5px] text-fg outline-none"
                 />
-                <div className="flex shrink-0 gap-1">
-                  {CATEGORY_COLORS.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      aria-label={color}
-                      onClick={() => actions.updateCategory(category.id, { color })}
-                      className={cn(
-                        "size-4 rounded-full border-2 transition-transform",
-                        category.color === color
-                          ? "border-fg/40 scale-110"
-                          : "border-transparent opacity-45 hover:opacity-100",
-                      )}
-                      style={{ backgroundColor: categoryVar(color) }}
-                    />
-                  ))}
-                </div>
+                {/* Nine swatches need ~250px; below that they take their own
+                    line rather than squeezing the name field to nothing. */}
+                <ColorPicker
+                  label={`رنگ دسته‌ی ${category.name}`}
+                  value={category.color}
+                  onChange={(color) =>
+                    actions.updateCategory(category.id, { color })
+                  }
+                />
                 <IconButton
                   icon="trash"
                   label={`حذف دسته‌ی ${category.name}`}
@@ -359,23 +401,11 @@ export default function SettingsPage() {
               toast({ message: "دسته اضافه شد", icon: "plus" });
             }}
           >
-            <div className="flex gap-1">
-              {CATEGORY_COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  aria-label={color}
-                  onClick={() => setNewColor(color)}
-                  className={cn(
-                    "size-5 rounded-full border-2 transition-transform",
-                    newColor === color
-                      ? "border-fg/40 scale-110"
-                      : "border-transparent opacity-45 hover:opacity-100",
-                  )}
-                  style={{ backgroundColor: categoryVar(color) }}
-                />
-              ))}
-            </div>
+            <ColorPicker
+              label="رنگ دسته‌ی جدید"
+              value={newColor}
+              onChange={setNewColor}
+            />
             <input
               value={newCategory}
               onChange={(event) => setNewCategory(event.target.value)}

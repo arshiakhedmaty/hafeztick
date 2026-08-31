@@ -21,12 +21,14 @@
   --line-strong: #c8bb9f;
   --fg: #16233a;
   --fg-soft: #3c4a63;
-  --muted: #77796f;
+  /* Light-mode text colours are pinned to WCAG AA (4.5:1) against the
+     *worst* surface they ever sit on, which is --surface-2, not the card. */
+  --muted: #696a62;
   --primary: #0b7c72;
   --primary-hover: #096860;
   --primary-contrast: #fbf8f1;
-  --primary-soft: #d8ebe6;
-  --accent: #a9741b;
+  --primary-soft: #e9f4f1;
+  --accent: #8c6016;
   --accent-soft: #f2e6cb;
   --success: #2f7d4f;
   --danger: #b5372c;

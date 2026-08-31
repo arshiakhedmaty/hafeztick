@@ -34,6 +34,7 @@ export function DurationField({
   max = MAX_ENTRY_MINUTES,
   compact = false,
   onSubmit,
+  name,
 }: {
   /** Minutes. */
   value: number;
@@ -43,7 +44,14 @@ export function DurationField({
   max?: number;
   compact?: boolean;
   onSubmit?: () => void;
+  /**
+   * What this duration belongs to, e.g. a weekday. Several of these fields can
+   * appear on one screen, and without it every one announces itself as plain
+   * «ساعت» — which tells a screen-reader user nothing about which is which.
+   */
+  name?: string;
 }) {
+  const label = (part: string) => (name ? `${name} — ${part}` : part);
   const parts = splitMinutes(value);
   const [text, setText] = useState({
     hours: String(parts.hours),
@@ -102,7 +110,7 @@ export function DurationField({
           <input
             {...numeric}
             autoFocus={autoFocus}
-            aria-label="ساعت"
+            aria-label={label("ساعت")}
             value={text.hours}
             onChange={(event) =>
               commit(
@@ -119,7 +127,7 @@ export function DurationField({
         <label className="flex flex-1 items-center gap-1.5">
           <input
             {...numeric}
-            aria-label="دقیقه"
+            aria-label={label("دقیقه")}
             value={text.minutes}
             onChange={(event) =>
               commit(
@@ -156,7 +164,7 @@ export function DurationField({
 
           <button
             type="button"
-            aria-label="پانزده دقیقه بیشتر"
+            aria-label={label("پانزده دقیقه بیشتر")}
             onClick={() => onChange(clampMinutes(value + 15, max))}
             className="flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[11.5px] text-muted transition-colors hover:text-fg-soft"
           >
