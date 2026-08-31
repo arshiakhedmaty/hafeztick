@@ -32,12 +32,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh lg:flex">
       {/* Desktop rail */}
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-e border-line bg-surface/60 px-4 py-6 lg:flex">
-        <Link href="/" className="mb-8 flex items-center gap-3 px-2">
-          <BrandMark size={38} />
+      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-e border-line px-4 py-6 lg:flex">
+        <Link href="/" className="mb-9 flex items-center gap-3 px-2">
+          <BrandMark size={34} />
           <span className="leading-tight">
-            <span className="block text-[15px] font-bold text-fg">حافظ‌تیک</span>
-            <span className="block text-[11px] text-muted">برنامه‌ریز شخصی</span>
+            <span className="hz-display block text-[18px] text-fg">حافظ‌تیک</span>
+            <span className="hz-eyebrow block">دفترِ ساعت‌ها</span>
           </span>
         </Link>
 
@@ -50,17 +50,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+                  "group relative flex items-center gap-3 rounded-field px-3 py-2.5 text-sm transition-colors duration-150",
                   active
-                    ? "bg-primary-soft text-primary"
-                    : "text-fg-soft hover:bg-surface-2",
+                    ? "bg-primary-soft font-semibold text-primary"
+                    : "font-medium text-fg-soft hover:bg-surface-2",
                 )}
               >
-                <Icon name={item.icon} size="1.2em" />
+                <Icon name={item.icon} size="1.15em" />
                 {item.label}
-                {active && (
-                  <span className="absolute inset-y-2 end-0 w-1 rounded-full bg-primary" />
-                )}
               </Link>
             );
           })}
@@ -73,10 +70,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line bg-bg/85 px-4 py-3 backdrop-blur-md lg:hidden">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line bg-bg/90 px-4 py-3 backdrop-blur-md lg:hidden">
           <Link href="/" className="flex items-center gap-2.5">
-            <BrandMark size={32} />
-            <span className="text-[15px] font-bold text-fg">حافظ‌تیک</span>
+            <BrandMark size={28} />
+            <span className="hz-display text-[17px] text-fg">حافظ‌تیک</span>
           </Link>
           <ThemeToggle compact />
         </header>
@@ -87,7 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       {/* Mobile tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/92 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
         <ul className="mx-auto flex max-w-lg items-stretch">
           {NAV_ITEMS.map((item) => {
             const active = isActive(pathname, item.href);

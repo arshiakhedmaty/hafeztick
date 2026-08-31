@@ -20,7 +20,7 @@ import type { Entry } from "@/lib/domain/types";
 import { useApp } from "@/lib/store/AppStore";
 import { useToast } from "@/components/ui/Toast";
 import { Button, IconButton } from "@/components/ui/Button";
-import { Card, CardHeader, SectionTitle } from "@/components/ui/Card";
+import { Card, CardHeader, PageHeader, SectionTitle } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { ProgressBar } from "@/components/ui/ProgressRing";
@@ -88,38 +88,33 @@ export default function WeekPage() {
 
   return (
     <>
-      <header className="mb-5 flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold text-fg sm:text-2xl">
-            {isCurrentWeek ? "این هفته" : "هفته"}
-          </h1>
-          <p className="mt-0.5 truncate text-[13px] text-muted">
-            {formatDay(days[0])} تا {formatDay(days[6])} · {formatMonth(days[6])}
-          </p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1">
-          {!isCurrentWeek && (
-            <Button size="sm" variant="soft" onClick={() => setAnchor(today)}>
-              این هفته
-            </Button>
-          )}
-          <IconButton
-            icon="chevron-end"
-            label="هفته‌ی قبل"
-            size="sm"
-            variant="outline"
-            onClick={() => setAnchor(addDays(days[0], -7))}
-          />
-          <IconButton
-            icon="chevron-start"
-            label="هفته‌ی بعد"
-            size="sm"
-            variant="outline"
-            onClick={() => setAnchor(addDays(days[0], 7))}
-          />
-        </div>
-      </header>
+      <PageHeader
+        title={isCurrentWeek ? "این هفته" : "هفته"}
+        subtitle={`${formatDay(days[0])} تا ${formatDay(days[6])} · ${formatMonth(days[6])}`}
+        action={
+          <div className="flex shrink-0 items-center gap-1">
+            {!isCurrentWeek && (
+              <Button size="sm" variant="soft" onClick={() => setAnchor(today)}>
+                این هفته
+              </Button>
+            )}
+            <IconButton
+              icon="chevron-end"
+              label="هفته‌ی قبل"
+              size="sm"
+              variant="outline"
+              onClick={() => setAnchor(addDays(days[0], -7))}
+            />
+            <IconButton
+              icon="chevron-start"
+              label="هفته‌ی بعد"
+              size="sm"
+              variant="outline"
+              onClick={() => setAnchor(addDays(days[0], 7))}
+            />
+          </div>
+        }
+      />
 
       <Card className="mb-5">
         <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
@@ -223,7 +218,7 @@ export default function WeekPage() {
       </Card>
 
       <SectionTitle>روزهای هفته</SectionTitle>
-      <div className="mb-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+      <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
         {days.map((day) => (
           <DayColumn
             key={day}

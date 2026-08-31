@@ -7,9 +7,9 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { STORAGE_KEY } from "@/lib/storage/repository";
 
 export const metadata: Metadata = {
-  title: "حافظ‌تیک | برنامه‌ریزی و پیگیری روزانه",
+  title: "حافظ‌تیک | دفترِ ساعت‌های مطالعه",
   description:
-    "برنامه‌ی روزانه و هفتگی‌ات را بچین، کارها را تیک بزن و ببین در طول زمان چقدر به برنامه پایبند بوده‌ای.",
+    "برای هر کاری که انجام می‌دهی زمانش را ثبت کن و ببین ساعت‌های مطالعه‌ات در گذر هفته‌ها چطور جمع می‌شوند.",
   applicationName: "HafezTick",
   manifest: `${process.env.PAGES_BASE_PATH ?? ""}/manifest.webmanifest`,
   appleWebApp: { capable: true, title: "حافظ‌تیک", statusBarStyle: "default" },
@@ -20,8 +20,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f5f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b0e10" },
+    { media: "(prefers-color-scheme: light)", color: "#f1ece0" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1214" },
   ],
 };
 
@@ -60,12 +60,13 @@ export default function RootLayout({
         {/*
           Loaded at runtime rather than through next/font so the build never
           depends on reaching Google Fonts. If the stylesheet cannot load, the
-          fallback stack in globals.css renders Persian correctly.
+          fallback stack in globals.css renders Persian correctly — the display
+          face degrades to the body face, which costs personality, not meaning.
         */}
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;600;700&display=swap"
         />
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
       </head>

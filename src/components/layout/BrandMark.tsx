@@ -1,28 +1,35 @@
-/** The HafezTick mark: a tick resting inside a rounded, gradient tile. */
+/**
+ * The mark is the same شمسه the app uses for a day, closed to a single
+ * eight-petal rosette. Nothing else in the identity needs to be invented: the
+ * thing the product draws every day is the thing it is named by.
+ */
 export function BrandMark({ size = 36 }: { size?: number }) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 40 40"
-      fill="none"
+      viewBox="-50 -50 100 100"
       aria-hidden="true"
       className="shrink-0"
     >
-      <defs>
-        <linearGradient id="hz-brand" x1="0" y1="0" x2="40" y2="40">
-          <stop offset="0%" stopColor="var(--primary)" />
-          <stop offset="100%" stopColor="var(--accent)" />
-        </linearGradient>
-      </defs>
-      <rect width="40" height="40" rx="12" fill="url(#hz-brand)" />
-      <path
-        d="M11.5 20.8 17.4 26.5 28.5 13.5"
-        stroke="white"
-        strokeWidth="3.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+      {Array.from({ length: 8 }, (_, index) => (
+        <path
+          key={index}
+          d="M 0 -13 C 7 -21, 8.5 -32, 0 -43 C -8.5 -32, -7 -21, 0 -13 Z"
+          transform={`rotate(${index * 45})`}
+          fill={index % 2 === 0 ? "var(--primary)" : "var(--accent)"}
+        />
+      ))}
+      <circle
+        cx="0"
+        cy="0"
+        r="13.5"
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth="2"
+        opacity="0.4"
       />
+      <circle cx="0" cy="0" r="9" fill="var(--primary)" />
     </svg>
   );
 }

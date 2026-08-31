@@ -7,25 +7,32 @@ import { progressStep } from "@/lib/utils/progress";
 import { WEEKDAY_NAMES } from "@/lib/date/jalali";
 
 /**
- * Each weekday has its own flower, and it opens as the day's hours fill in.
+ * شمسه — the rosette that opens an illuminated Persian manuscript, here
+ * carrying a day's study hours.
  *
- * The shape is fixed per weekday — a different petal count and tilt for each —
- * so a glance at the week board reads as seven distinct places rather than
- * seven identical gauges. What changes is how far it has opened: petals appear
- * one step at a time, and the flower only takes the celebratory gold once the
- * day has actually cleared its success threshold.
+ * Each weekday keeps its own rosette: a fixed petal count and rotation, so the
+ * week board reads as seven distinct places rather than seven identical
+ * gauges. What changes is how far it has opened. Petals light one step at a
+ * time as the hours accumulate, and only a day that actually cleared its
+ * success threshold takes the gold of تذهیب — which is why gold means
+ * something when you see it.
  */
 
-/** Petals, and the tilt that keeps neighbours from looking like twins. */
+/** Petals, and the rotation that keeps neighbouring days from looking alike. */
 const SHAPES: { petals: number; rotate: number }[] = [
-  { petals: 6, rotate: 0 }, // شنبه
-  { petals: 5, rotate: 18 }, // یک‌شنبه
-  { petals: 8, rotate: 12 }, // دوشنبه
-  { petals: 6, rotate: 30 }, // سه‌شنبه
-  { petals: 7, rotate: 8 }, // چهارشنبه
+  { petals: 8, rotate: 0 }, // شنبه
+  { petals: 6, rotate: 15 }, // یک‌شنبه
+  { petals: 12, rotate: 8 }, // دوشنبه
+  { petals: 7, rotate: 25 }, // سه‌شنبه
+  { petals: 10, rotate: 9 }, // چهارشنبه
   { petals: 5, rotate: 36 }, // پنج‌شنبه
-  { petals: 8, rotate: 22 }, // جمعه
+  { petals: 9, rotate: 20 }, // جمعه
 ];
+
+/** One petal, drawn as the pointed almond of Persian illumination. */
+function petalPath(): string {
+  return "M 0 -13 C 7 -21, 8.5 -32, 0 -43 C -8.5 -32, -7 -21, 0 -13 Z";
+}
 
 export function DayFlower({
   weekday,
@@ -45,12 +52,12 @@ export function DayFlower({
 }) {
   const shape = SHAPES[weekday] ?? SHAPES[0];
   const step = progressStep(ratio);
-  // Step 0..5 maps onto "no petals" .. "every petal".
   const open = step === null ? 0 : step / 5;
   const litPetals = Math.round(shape.petals * open);
 
   const tone = successful ? "var(--accent)" : "var(--primary)";
   const dormant = step === null;
+  const started = litPetals > 0;
 
   return (
     <svg
@@ -71,51 +78,53 @@ export function DayFlower({
           const lit = index < litPetals;
           const angle = (360 / shape.petals) * index;
           return (
-            <ellipse
+            <path
               key={index}
-              cx="0"
-              cy="-27"
-              rx="11"
-              ry="19"
+              d={petalPath()}
               transform={`rotate(${angle})`}
               fill={lit ? tone : "var(--surface-2)"}
               stroke={lit ? "transparent" : "var(--line)"}
-              strokeWidth="2"
-              opacity={lit ? (successful ? 1 : 0.9) : dormant ? 0.5 : 0.85}
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+              opacity={lit ? 1 : dormant ? 0.45 : 0.8}
               style={{
                 transition:
-                  "fill 420ms cubic-bezier(.22,1,.36,1), opacity 420ms ease",
+                  "fill 460ms cubic-bezier(.22,1,.36,1), opacity 460ms ease",
               }}
             />
           );
         })}
       </g>
 
+      {/* The بند: the ring that binds the petals to the centre. */}
       <circle
         cx="0"
         cy="0"
-        r="12"
-        fill={litPetals > 0 ? tone : "var(--surface-2)"}
-        stroke={litPetals > 0 ? "transparent" : "var(--line-strong)"}
+        r="13.5"
+        fill="none"
+        stroke={started ? tone : "var(--line)"}
         strokeWidth="2"
-        style={{ transition: "fill 420ms cubic-bezier(.22,1,.36,1)" }}
+        opacity={started ? 0.4 : 0.7}
+        style={{ transition: "stroke 460ms cubic-bezier(.22,1,.36,1)" }}
       />
 
+      <circle
+        cx="0"
+        cy="0"
+        r="9"
+        fill={started ? tone : "var(--surface-2)"}
+        style={{ transition: "fill 460ms cubic-bezier(.22,1,.36,1)" }}
+      />
+
+      {/* A day that met its hours gets the pierced centre of a real شمسه. */}
       {successful && (
-        <circle
-          cx="0"
-          cy="0"
-          r="5"
-          fill="var(--surface)"
-          opacity="0.85"
-          className="hz-fade"
-        />
+        <circle cx="0" cy="0" r="3.5" fill="var(--surface)" className="hz-fade" />
       )}
     </svg>
   );
 }
 
-/** The sentence under a flower: hours done against the day's goal. */
+/** The sentence under a rosette: hours done against the day's goal. */
 export function flowerHint(minutes: number, goalMinutes: number): string {
   if (goalMinutes === 0) return "بدون هدف";
   return `${faDuration(minutes, { short: true, zero: "۰" })} از ${faGoal(goalMinutes)}`;

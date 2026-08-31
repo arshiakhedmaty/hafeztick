@@ -42,104 +42,140 @@ export function DaySummary({
   const ratio = score.ratio;
   const complete = ratio !== null && ratio >= 1;
   const remaining = Math.max(0, score.goalMinutes - score.minutes);
+  // One tick per hour asked for; a half hour still earns its own mark.
+  const hourTicks = Math.round(score.goalMinutes / 60);
 
   return (
     <section
-      className={`mb-5 flex items-center gap-5 rounded-card border border-line bg-surface p-5 shadow-card ${
+      className={`mb-6 rounded-card border border-line bg-surface p-5 sm:p-6 ${
         complete ? "hz-glow" : ""
       }`}
     >
-      <ProgressRing
-        value={ratio}
-        size={112}
-        stroke={9}
-        tone={progressTone(ratio)}
-      >
-        <div title={faDuration(score.minutes, { zero: "بدون زمان" })}>
-          <span className="hz-tnum block text-2xl font-bold leading-none text-fg">
-            {faClock(score.minutes)}
-          </span>
-          <span className="mt-1 block text-[10.5px] text-muted">
-            {score.goalMinutes === 0
-              ? "بدون هدف"
-              : `از ${faGoal(score.goalMinutes)}`}
-          </span>
-        </div>
-      </ProgressRing>
+      <div className="flex items-center gap-5 sm:gap-6">
+        <ProgressRing
+          value={ratio}
+          size={124}
+          stroke={10}
+          ticks={hourTicks}
+          tone={progressTone(ratio)}
+        >
+          <div title={faDuration(score.minutes, { zero: "بدون زمان" })}>
+            <span className="hz-display hz-tnum block text-[30px] leading-none text-fg">
+              {faClock(score.minutes)}
+            </span>
+            <span className="mt-1.5 block text-[10.5px] text-muted">
+              {score.goalMinutes === 0
+                ? "بدون هدف"
+                : `از ${faGoal(score.goalMinutes)}`}
+            </span>
+          </div>
+        </ProgressRing>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-[13.5px] leading-relaxed text-fg-soft">
-            {message(score, successMinutes)}
-          </p>
-          <DayFlower
-            weekday={weekdayIndex(score.day)}
-            ratio={ratio}
-            successful={successful}
-            size={40}
-            className="mt-0.5"
-          />
-        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-[14px] leading-relaxed text-fg-soft">
+              {message(score, successMinutes)}
+            </p>
+            <DayFlower
+              weekday={weekdayIndex(score.day)}
+              ratio={ratio}
+              successful={successful}
+              size={46}
+              className="mt-0.5"
+            />
+          </div>
 
-        <dl className="mt-4 grid grid-cols-3 gap-3">
-          <div>
-            <dt className="text-[11px] text-muted">پیشرفت هدف</dt>
-            <dd className="hz-tnum mt-0.5 text-[15px] font-semibold text-fg">
-              {ratio === null ? "—" : `${faPercent(ratio)}٪`}
+          <dl className="mt-5 hidden grid-cols-3 gap-x-4 gap-y-1 border-t border-line pt-4 sm:grid">
+            <div>
+              <dt className="hz-eyebrow">پیشرفت هدف</dt>
+              <dd className="hz-tnum mt-1 text-[15px] font-semibold text-fg">
+                {ratio === null ? "—" : `${faPercent(ratio)}٪`}
+              </dd>
               {remaining > 0 && (
-                <span className="text-[12px] font-normal text-muted">
-                  {" "}
-                  · {faDuration(remaining, { short: true })} مانده
-                </span>
+                <dd className="hz-tnum mt-0.5 text-[11px] text-muted">
+                  {faDuration(remaining, { short: true })} مانده
+                </dd>
               )}
-            </dd>
-          </div>
+            </div>
 
-          <div>
-            <dt className="text-[11px] text-muted">زنجیره</dt>
-            <dd className="hz-tnum mt-0.5 flex items-center gap-1 text-[15px] font-semibold text-fg">
-              <Icon
-                name="flame"
-                size="0.95em"
-                className={streak > 0 ? "text-accent" : "text-muted/50"}
-              />
-              {faNum(streak)}
-              <span className="text-[12px] font-normal text-muted">روز</span>
-            </dd>
-          </div>
+            <div>
+              <dt className="hz-eyebrow">زنجیره</dt>
+              <dd className="hz-tnum mt-1 flex items-center gap-1 text-[15px] font-semibold text-fg">
+                <Icon
+                  name="flame"
+                  size="0.95em"
+                  className={streak > 0 ? "text-accent" : "text-muted/50"}
+                />
+                {faNum(streak)}
+                <span className="text-[12px] font-normal text-muted">روز</span>
+              </dd>
+            </div>
 
-          <div>
-            <dt className="text-[11px] text-muted">میانگین نسبت به هفته‌ی قبل</dt>
-            <dd className="hz-tnum mt-0.5 flex items-center gap-1 text-[15px] font-semibold">
-              {weekDelta === null ? (
-                <span className="text-muted">—</span>
-              ) : (
-                <span
-                  className={
-                    weekDelta > 1
-                      ? "flex items-center gap-1 text-success"
-                      : weekDelta < -1
-                        ? "flex items-center gap-1 text-danger"
-                        : "flex items-center gap-1 text-muted"
-                  }
-                >
-                  <Icon
-                    name={
+            <div>
+              <dt className="hz-eyebrow">میانگین هفته</dt>
+              <dd className="hz-tnum mt-1 flex items-center gap-1 text-[15px] font-semibold">
+                {weekDelta === null ? (
+                  <span className="text-muted">—</span>
+                ) : (
+                  <span
+                    className={
                       weekDelta > 1
-                        ? "arrow-up"
+                        ? "flex items-center gap-1 text-success"
                         : weekDelta < -1
-                          ? "arrow-down"
-                          : "minus"
+                          ? "flex items-center gap-1 text-danger"
+                          : "flex items-center gap-1 text-muted"
                     }
-                    size="0.9em"
-                  />
-                  {faDuration(Math.abs(weekDelta), { short: true, zero: "۰" })}
-                </span>
-              )}
-            </dd>
-          </div>
-        </dl>
+                  >
+                    <Icon
+                      name={
+                        weekDelta > 1
+                          ? "arrow-up"
+                          : weekDelta < -1
+                            ? "arrow-down"
+                            : "minus"
+                      }
+                      size="0.9em"
+                    />
+                    {faDuration(Math.abs(weekDelta), { short: true, zero: "۰" })}
+                  </span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        </div>
       </div>
+
+      {/* Below the breakpoint the same figures run the full width of the card,
+          where the labels have room to sit on one line. */}
+      <dl className="mt-5 grid grid-cols-3 gap-x-4 border-t border-line pt-4 sm:hidden">
+        <div>
+          <dt className="hz-eyebrow">پیشرفت</dt>
+          <dd className="hz-tnum mt-1 text-[15px] font-semibold text-fg">
+            {ratio === null ? "—" : `${faPercent(ratio)}٪`}
+          </dd>
+        </div>
+        <div>
+          <dt className="hz-eyebrow">زنجیره</dt>
+          <dd className="hz-tnum mt-1 flex items-center gap-1 text-[15px] font-semibold text-fg">
+            <Icon
+              name="flame"
+              size="0.95em"
+              className={streak > 0 ? "text-accent" : "text-muted/50"}
+            />
+            {faNum(streak)}
+          </dd>
+        </div>
+        <div>
+          <dt className="hz-eyebrow">مانده</dt>
+          <dd className="hz-tnum mt-1 text-[15px] font-semibold text-fg">
+            {remaining > 0
+              ? faDuration(remaining, { short: true })
+              : score.goalMinutes === 0
+                ? "—"
+                : "۰"}
+          </dd>
+        </div>
+      </dl>
     </section>
   );
 }

@@ -13,7 +13,7 @@ import { routineConsistency } from "@/lib/domain/stats";
 import { useApp } from "@/lib/store/AppStore";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { Card, PageHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { Menu } from "@/components/ui/Menu";
@@ -46,21 +46,19 @@ export default function RoutinesPage() {
 
   return (
     <>
-      <header className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-fg sm:text-2xl">روتین‌ها</h1>
-          <p className="mt-0.5 text-[13px] text-muted">
-            کارهای تکرارشونده‌ای که ساعت‌های مطالعه‌ات را می‌سازند.
-          </p>
-        </div>
-        <Button
-          variant="primary"
-          icon="plus"
-          onClick={() => setDialog({ open: true, id: null })}
-        >
-          روتین جدید
-        </Button>
-      </header>
+      <PageHeader
+        title="روتین‌ها"
+        subtitle="کارهای تکرارشونده‌ای که ساعت‌های مطالعه‌ات را می‌سازند."
+        action={
+          <Button
+            variant="primary"
+            icon="plus"
+            onClick={() => setDialog({ open: true, id: null })}
+          >
+            روتین جدید
+          </Button>
+        }
+      />
 
       {active.length === 0 ? (
         <EmptyState

@@ -79,7 +79,7 @@ export function WeekdayChart({
                 weekday={stat.weekday}
                 ratio={stat.ratio}
                 successful={successful}
-                size={22}
+                size={26}
                 label={`${WEEKDAY_NAMES[stat.weekday]}`}
               />
 

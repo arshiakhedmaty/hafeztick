@@ -6,7 +6,7 @@ import { faClock, faDuration, faGoal } from "@/lib/utils/duration";
 import { barValue } from "@/lib/utils/progress";
 import { buildStatsOverview, type PeriodComparison } from "@/lib/domain/stats";
 import { useApp } from "@/lib/store/AppStore";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { Card, CardHeader, PageHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { Segmented } from "@/components/ui/Field";
@@ -39,8 +39,8 @@ function Stat({
   tone?: "accent" | "primary";
 }) {
   return (
-    <div className="rounded-card border border-line bg-surface p-4">
-      <p className="flex items-center gap-1.5 text-[11.5px] text-muted">
+    <div className="px-1 py-3 sm:px-4">
+      <p className="hz-eyebrow flex items-center gap-1.5">
         {icon && (
           <Icon
             name={icon}
@@ -50,8 +50,10 @@ function Stat({
         )}
         {label}
       </p>
-      <p className="hz-tnum mt-1.5 text-xl font-bold leading-none text-fg">{value}</p>
-      {hint && <p className="mt-1.5 text-[11px] text-muted">{hint}</p>}
+      <p className="hz-tnum mt-2 text-[22px] font-bold leading-none text-fg">
+        {value}
+      </p>
+      {hint && <p className="mt-1.5 text-[11px] leading-relaxed text-muted">{hint}</p>}
     </div>
   );
 }
@@ -117,20 +119,18 @@ export default function StatsPage() {
 
   return (
     <>
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-fg sm:text-2xl">آمار</h1>
-          <p className="mt-0.5 text-[13px] text-muted">
-            ساعت‌های مطالعه‌ات، در گذر زمان.
-          </p>
-        </div>
-        <Segmented
-          value={range}
-          options={RANGE_OPTIONS}
-          onChange={setRange}
-          className="w-full sm:w-64"
-        />
-      </header>
+      <PageHeader
+        title="آمار"
+        subtitle="ساعت‌های مطالعه‌ات، در گذر زمان."
+        action={
+          <Segmented
+            value={range}
+            options={RANGE_OPTIONS}
+            onChange={setRange}
+            className="w-full sm:w-64"
+          />
+        }
+      />
 
       {!hasData ? (
         <EmptyState
@@ -140,7 +140,7 @@ export default function StatsPage() {
         />
       ) : (
         <div className="space-y-5">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 divide-x divide-x-reverse divide-line border-y border-line lg:grid-cols-4">
             <Stat
               label="زنجیره‌ی فعلی"
               value={`${faNum(overview.streaks.current)} روز`}

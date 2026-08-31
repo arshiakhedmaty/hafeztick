@@ -11,7 +11,7 @@ import { exportData } from "@/lib/storage/repository";
 import { useApp } from "@/lib/store/AppStore";
 import { useToast } from "@/components/ui/Toast";
 import { Button, IconButton } from "@/components/ui/Button";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { Card, CardHeader, PageHeader } from "@/components/ui/Card";
 import { DurationField } from "@/components/ui/DurationField";
 import { Label, TextField, Toggle } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
@@ -84,12 +84,10 @@ export default function SettingsPage() {
 
   return (
     <>
-      <header className="mb-5">
-        <h1 className="text-xl font-bold text-fg sm:text-2xl">تنظیمات</h1>
-        <p className="mt-0.5 text-[13px] text-muted">
-          حافظ‌تیک را با روش کار خودت هماهنگ کن.
-        </p>
-      </header>
+      <PageHeader
+        title="تنظیمات"
+        subtitle="حافظ‌تیک را با روش کار خودت هماهنگ کن."
+      />
 
       <div className="space-y-5">
         <Card>

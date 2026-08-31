@@ -73,14 +73,13 @@ export function DayColumn({
 
       <div className="mb-1 flex items-baseline justify-between gap-2">
         <span
+          title={faDuration(score.minutes, { zero: "بدون زمان" })}
           className={cn(
-            "hz-tnum text-[13px] font-semibold",
+            "hz-tnum text-[15px] font-semibold",
             score.minutes > 0 ? "text-fg" : "text-muted",
           )}
         >
-          {score.minutes > 0
-            ? faDuration(score.minutes, { short: true })
-            : "—"}
+          {score.minutes > 0 ? faClock(score.minutes) : "—"}
         </span>
         <span className="hz-tnum shrink-0 text-[10.5px] text-muted">
           {score.goalMinutes === 0

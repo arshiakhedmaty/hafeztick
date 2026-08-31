@@ -1,78 +1,88 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   HafezTick design tokens
-   Light is a warm paper tone, dark is a deep neutral with a green cast.
-   Primary is turquoise (فیروزه‌ای); the accent gold is reserved for streaks
-   and celebration, so it stays meaningful.
+   حافظ‌تیک — design tokens
+
+   The page is a manuscript leaf, not a dashboard. Light mode is کاغذ نخودی,
+   the ivory of a Persian manuscript, ruled with the faintest of lines; ink is
+   blue-black rather than neutral, the way iron-gall ink actually sits on
+   paper. The two chromatic colours come from the same tradition: فیروزه, the
+   Neyshabur turquoise of tilework, carries every action, and طلا, the gold of
+   تذهیب illumination, is spent only on things worth celebrating — a day that
+   met its hours, a live streak. Two colours, two jobs, no third opinion.
 --------------------------------------------------------------------------- */
 
 :root {
-  --bg: #f6f5f2;
-  --bg-soft: #efedE8;
-  --surface: #ffffff;
-  --surface-2: #f2f0eb;
-  --line: #e5e1d9;
-  --line-strong: #d5cfc3;
-  --fg: #17181a;
-  --fg-soft: #3d4046;
-  --muted: #6e7076;
-  --primary: #0e9c8a;
-  --primary-hover: #0b8578;
-  --primary-contrast: #ffffff;
-  --primary-soft: #dcf4f0;
-  --accent: #c08327;
-  --accent-soft: #f7ecd6;
-  --success: #16a34a;
-  --danger: #dc2626;
-  --danger-soft: #fdeaea;
-  --shadow-sm: 0 1px 2px rgb(23 24 26 / 0.05);
-  --shadow-md: 0 4px 16px -4px rgb(23 24 26 / 0.1);
-  --shadow-lg: 0 18px 48px -18px rgb(23 24 26 / 0.28);
+  --bg: #f1ece0;
+  --bg-soft: #eae3d3;
+  --surface: #fbf8f1;
+  --surface-2: #efe9db;
+  --line: #ded3bd;
+  --line-strong: #c8bb9f;
+  --fg: #16233a;
+  --fg-soft: #3c4a63;
+  --muted: #77796f;
+  --primary: #0b7c72;
+  --primary-hover: #096860;
+  --primary-contrast: #fbf8f1;
+  --primary-soft: #d8ebe6;
+  --accent: #a9741b;
+  --accent-soft: #f2e6cb;
+  --success: #2f7d4f;
+  --danger: #b5372c;
+  --danger-soft: #f6e2df;
 
-  --cat-teal: #0e9c8a;
-  --cat-violet: #7c5cd6;
-  --cat-amber: #c08327;
-  --cat-rose: #d2547a;
-  --cat-sky: #2b7fd4;
-  --cat-lime: #5c9c1f;
-  --cat-coral: #d9573a;
-  --cat-plum: #a4499f;
-  --cat-slate: #6b7280;
+  /* The ruling of the page: present, never legible as a pattern. */
+  --rule: color-mix(in oklab, var(--fg) 3.5%, transparent);
+  --shadow-sm: 0 1px 1px rgb(22 35 58 / 0.04);
+  --shadow-md: 0 6px 20px -8px rgb(22 35 58 / 0.14);
+  --shadow-lg: 0 24px 56px -20px rgb(22 35 58 / 0.32);
+
+  --cat-teal: #0b7c72;
+  --cat-violet: #6a4fc4;
+  --cat-amber: #a9741b;
+  --cat-rose: #c04568;
+  --cat-sky: #24689f;
+  --cat-lime: #55842a;
+  --cat-coral: #c9522f;
+  --cat-plum: #93408f;
+  --cat-slate: #6c7182;
 }
 
 [data-theme="dark"] {
-  --bg: #0b0e10;
-  --bg-soft: #0f1315;
-  --surface: #14191c;
-  --surface-2: #1b2226;
-  --line: #262f34;
-  --line-strong: #35424a;
-  --fg: #e9eef0;
-  --fg-soft: #c3cbd0;
-  --muted: #8e999f;
-  --primary: #2fd4be;
-  --primary-hover: #4ae0cc;
-  --primary-contrast: #05201d;
-  --primary-soft: #10312e;
-  --accent: #e5b45c;
-  --accent-soft: #322715;
-  --success: #34d399;
-  --danger: #f87171;
-  --danger-soft: #351d1d;
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow-md: 0 4px 16px -4px rgb(0 0 0 / 0.5);
-  --shadow-lg: 0 18px 48px -18px rgb(0 0 0 / 0.7);
+  --bg: #0b1214;
+  --bg-soft: #0e181a;
+  --surface: #121b1e;
+  --surface-2: #1a2528;
+  --line: #24312f;
+  --line-strong: #354644;
+  --fg: #e9efec;
+  --fg-soft: #c2ccc9;
+  --muted: #8b968f;
+  --primary: #3fdcc6;
+  --primary-hover: #5ce9d4;
+  --primary-contrast: #04211e;
+  --primary-soft: #0f302c;
+  --accent: #e5b95e;
+  --accent-soft: #2f2513;
+  --success: #43c98a;
+  --danger: #f0736a;
+  --danger-soft: #331d1c;
 
-  --cat-teal: #2fd4be;
-  --cat-violet: #a58cf0;
-  --cat-amber: #e5b45c;
-  --cat-rose: #f0819f;
-  --cat-sky: #63a9f0;
-  --cat-lime: #93d13f;
-  --cat-coral: #f2916f;
-  --cat-plum: #d98ad2;
-  --cat-slate: #98a2ae;
+  --rule: color-mix(in oklab, var(--fg) 3%, transparent);
+  --shadow-sm: 0 1px 1px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 6px 20px -8px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 24px 56px -20px rgb(0 0 0 / 0.75);
+
+  --cat-teal: #3fdcc6;
+  --cat-violet: #a892f5;
+  --cat-amber: #e5b95e;
+  --cat-rose: #f08aa6;
+  --cat-sky: #6cb2f2;
+  --cat-lime: #9ed84c;
+  --cat-coral: #f5977a;
+  --cat-plum: #dd94d6;
+  --cat-slate: #99a3b0;
 }
 
 @theme inline {
@@ -96,9 +106,10 @@
   --color-danger-soft: var(--danger-soft);
 
   --font-sans: var(--font-app);
+  --font-display: var(--font-title);
 
-  --radius-card: 1.125rem;
-  --radius-field: 0.75rem;
+  --radius-card: 0.875rem;
+  --radius-field: 0.625rem;
 
   --shadow-card: var(--shadow-sm);
   --shadow-float: var(--shadow-md);
@@ -119,8 +130,20 @@ html {
   color-scheme: dark;
 }
 
+/* ---------------------------------------------------------------------------
+   Type
+
+   Two faces with two different jobs. لاله‌زار comes out of Iranian poster and
+   shopfront lettering — one weight, wide, unmistakably Tehran — and it appears
+   only three times: the wordmark, a page title, and the hours on the day's
+   rosette. وزیرمتن does everything else, because Persian interface legibility
+   is not an axis worth spending on novelty. The contrast between the two is
+   the point; using the display face anywhere else would spend it.
+--------------------------------------------------------------------------- */
+
 body {
   --font-app: "Vazirmatn", "Segoe UI", Tahoma, "Iranian Sans", sans-serif;
+  --font-title: "Lalezar", var(--font-app);
   background-color: var(--bg);
   color: var(--fg);
   font-family: var(--font-app);
@@ -128,6 +151,30 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overscroll-behavior-y: none;
+
+  /* The ruling of a دفتر, at the threshold of visibility. It gives the ground
+     a grain so content reads as sitting *on* paper rather than floating. */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--rule) 0 1px,
+    transparent 1px 30px
+  );
+}
+
+/* The display face is wide and heavy; it needs air the body face does not. */
+.hz-display {
+  font-family: var(--font-title);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+}
+
+/* Section eyebrows: small, spaced, and quiet enough to be scaffolding. */
+.hz-eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--muted);
 }
 
 ::selection {
