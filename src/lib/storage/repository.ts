@@ -65,6 +65,19 @@ function normalizeSettings(raw: unknown): Settings {
       typeof input.lastExportAt === "number" ? input.lastExportAt : null,
     backupRemindedAt:
       typeof input.backupRemindedAt === "number" ? input.backupRemindedAt : null,
+    insightSnoozedAt:
+      input.insightSnoozedAt && typeof input.insightSnoozedAt === "object"
+        ? Object.fromEntries(
+            Object.entries(input.insightSnoozedAt).filter(
+              ([, at]) => typeof at === "number" && Number.isFinite(at),
+            ),
+          )
+        : {},
+    celebratedHours:
+      typeof input.celebratedHours === "number" &&
+      Number.isFinite(input.celebratedHours)
+        ? Math.max(0, input.celebratedHours)
+        : 0,
   };
 }
 

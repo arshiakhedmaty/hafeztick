@@ -17,6 +17,8 @@ export const DEFAULT_SETTINGS: Settings = {
   onboarded: false,
   lastExportAt: null,
   backupRemindedAt: null,
+  insightSnoozedAt: {},
+  celebratedHours: 0,
 };
 
 export function defaultCategories(): Category[] {

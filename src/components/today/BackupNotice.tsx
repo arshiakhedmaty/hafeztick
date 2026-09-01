@@ -6,7 +6,7 @@ import { exportData } from "@/lib/storage/repository";
 import { useApp } from "@/lib/store/AppStore";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
+import { Notice } from "./Notice";
 
 /**
  * The one thing this app cannot recover from is the browser losing its
@@ -34,27 +34,25 @@ export function BackupNotice() {
   };
 
   return (
-    <section className="hz-rise mb-5 flex flex-wrap items-center justify-between gap-3 rounded-card border border-accent/35 bg-accent-soft/50 px-4 py-3">
-      <p className="flex min-w-0 items-start gap-2 text-[13px] leading-relaxed text-fg-soft">
-        <Icon name="archive" size="1.1em" className="mt-0.5 shrink-0 text-accent" />
-        <span>
-          {prompt.daysSinceExport === null
-            ? `${faNum(prompt.loggedDays)} روز مطالعه ثبت کرده‌ای و هنوز پشتیبانی نگرفته‌ای.`
-            : `${faNum(prompt.daysSinceExport)} روز از آخرین پشتیبان گذشته است.`}{" "}
-          <span className="text-muted">
-            همه‌چیز فقط روی همین مرورگر است؛ پاک شدنش برگشتی ندارد.
-          </span>
-        </span>
-      </p>
-
-      <div className="flex shrink-0 gap-1.5">
-        <Button size="sm" variant="ghost" onClick={actions.snoozeBackupReminder}>
-          بعداً
-        </Button>
-        <Button size="sm" variant="outline" icon="download" onClick={download}>
-          گرفتن پشتیبان
-        </Button>
-      </div>
-    </section>
+    <Notice
+      icon="archive"
+      actions={
+        <>
+          <Button size="sm" variant="ghost" onClick={actions.snoozeBackupReminder}>
+            بعداً
+          </Button>
+          <Button size="sm" variant="outline" icon="download" onClick={download}>
+            گرفتن پشتیبان
+          </Button>
+        </>
+      }
+    >
+      {prompt.daysSinceExport === null
+        ? `${faNum(prompt.loggedDays)} روز مطالعه ثبت کرده‌ای و هنوز پشتیبانی نگرفته‌ای.`
+        : `${faNum(prompt.daysSinceExport)} روز از آخرین پشتیبان گذشته است.`}{" "}
+      <span className="text-muted">
+        همه‌چیز فقط روی همین مرورگر است؛ پاک شدنش برگشتی ندارد.
+      </span>
+    </Notice>
   );
 }

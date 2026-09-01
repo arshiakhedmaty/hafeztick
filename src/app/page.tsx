@@ -21,7 +21,7 @@ import { EntryRow } from "@/components/tasks/EntryRow";
 import { QuickAdd } from "@/components/tasks/QuickAdd";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { RoutineDialog } from "@/components/tasks/RoutineDialog";
-import { BackupNotice } from "@/components/today/BackupNotice";
+import { Advisory } from "@/components/today/Advisory";
 import { DayHeader } from "@/components/today/DayHeader";
 import { DaySummary } from "@/components/today/DaySummary";
 import { FlexibleSection } from "@/components/today/FlexibleSection";
@@ -113,7 +113,7 @@ export default function TodayPage() {
         settings={data.settings}
       />
 
-      <BackupNotice />
+      <Advisory />
 
       {overdue.length > 0 && (
         <div className="hz-rise mb-5 flex flex-wrap items-center justify-between gap-3 rounded-card border border-accent/35 bg-accent-soft/60 px-4 py-3">

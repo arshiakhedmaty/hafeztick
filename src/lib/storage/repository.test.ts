@@ -105,6 +105,25 @@ describe("normalize", () => {
       null,
     ]);
   });
+
+  it("starts the advisory bookkeeping from nothing on old data", () => {
+    const data = normalize(LEGACY);
+    expect(data?.settings.insightSnoozedAt).toEqual({});
+    expect(data?.settings.celebratedHours).toBe(0);
+  });
+
+  it("keeps only real timestamps out of a corrupt snooze record", () => {
+    const data = normalize({
+      ...LEGACY,
+      settings: {
+        ...LEGACY.settings,
+        insightSnoozedAt: { milestone: 1700000000000, "streak-broken": "soon" },
+        celebratedHours: -50,
+      },
+    });
+    expect(data?.settings.insightSnoozedAt).toEqual({ milestone: 1700000000000 });
+    expect(data?.settings.celebratedHours).toBe(0);
+  });
 });
 
 describe("export and import", () => {

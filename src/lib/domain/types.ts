@@ -117,6 +117,10 @@ export interface Settings {
   lastExportAt: number | null;
   /** When the backup reminder was last dismissed. */
   backupRemindedAt: number | null;
+  /** When each kind of advisory message was last dismissed, keyed by kind. */
+  insightSnoozedAt: Record<string, number>;
+  /** The highest hour milestone already celebrated, so it is never repeated. */
+  celebratedHours: number;
 }
 
 export interface AppData {

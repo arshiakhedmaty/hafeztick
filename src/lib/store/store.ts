@@ -1,4 +1,5 @@
 import { type DayKey, compareDays, todayKey } from "../date/day";
+import type { InsightKind } from "../domain/insight";
 import { materializeThrough, syncDay } from "../domain/schedule";
 import { entryId } from "../domain/types";
 import type {
@@ -521,6 +522,41 @@ export class AppStore {
   /** Puts the backup reminder away for a while without taking one. */
   snoozeBackupReminder = (): void => {
     this.updateSettings({ backupRemindedAt: Date.now() });
+  };
+
+  /** Dismisses one kind of advisory message; it stays away for a fortnight. */
+  snoozeInsight = (kind: InsightKind): void => {
+    this.updateSettings({
+      insightSnoozedAt: {
+        ...this.snapshot.data.settings.insightSnoozedAt,
+        [kind]: Date.now(),
+      },
+    });
+  };
+
+  /**
+   * Records a milestone as seen. Unlike the other messages this is permanent:
+   * a hundred hours is only reached once, and being congratulated for it twice
+   * cheapens it.
+   */
+  celebrateMilestone = (hours: number): void => {
+    this.updateSettings({
+      celebratedHours: Math.max(hours, this.snapshot.data.settings.celebratedHours),
+    });
+  };
+
+  /**
+   * Takes the app's own suggestion for a reachable daily goal, and clears the
+   * message with it — the suggestion has been acted on, not dismissed.
+   */
+  adoptSuggestedGoal = (minutes: number): void => {
+    this.updateSettings({
+      dailyGoalMinutes: clampMinutes(minutes),
+      insightSnoozedAt: {
+        ...this.snapshot.data.settings.insightSnoozedAt,
+        "goal-too-high": Date.now(),
+      },
+    });
   };
 
   loadSamplePlan = (): void => {
