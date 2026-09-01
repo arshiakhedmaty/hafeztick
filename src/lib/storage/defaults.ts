@@ -14,7 +14,6 @@ export const DEFAULT_SETTINGS: Settings = {
   weekdayGoalMinutes: [null, null, null, null, null, null, null],
   successThreshold: 0.7,
   restDays: [],
-  onboarded: false,
   lastExportAt: null,
   backupRemindedAt: null,
   insightSnoozedAt: {},

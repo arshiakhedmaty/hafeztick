@@ -60,7 +60,6 @@ function normalizeSettings(raw: unknown): Settings {
     weekdayGoalMinutes: weekday,
     successThreshold: Math.min(1, Math.max(0.1, threshold)),
     restDays: Array.isArray(input.restDays) ? input.restDays : [],
-    onboarded: input.onboarded ?? DEFAULT_SETTINGS.onboarded,
     lastExportAt:
       typeof input.lastExportAt === "number" ? input.lastExportAt : null,
     backupRemindedAt:

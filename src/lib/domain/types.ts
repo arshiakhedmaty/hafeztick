@@ -112,7 +112,6 @@ export interface Settings {
   successThreshold: number;
   /** Weekdays exempt from breaking a streak (0 = Saturday). */
   restDays: number[];
-  onboarded: boolean;
   /** When a backup was last downloaded, so the app can stop nagging. */
   lastExportAt: number | null;
   /** When the backup reminder was last dismissed. */

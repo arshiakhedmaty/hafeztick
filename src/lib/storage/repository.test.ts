@@ -29,7 +29,6 @@ const LEGACY = {
     dailyGoal: 0.8,
     restDays: [6],
     reduceMotion: false,
-    onboarded: true,
   },
   lastMaterializedDay: "2026-08-29",
 };

@@ -564,7 +564,6 @@ export class AppStore {
       this.resync({
         ...previous,
         routines: [...previous.routines, ...sampleRoutines()],
-        settings: { ...previous.settings, onboarded: true },
       }),
     );
   };
