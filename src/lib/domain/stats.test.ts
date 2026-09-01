@@ -5,6 +5,7 @@ import {
   computeDayScores,
   comparePeriods,
   computeStreaks,
+  groupEntriesByDay,
   weekdayBreakdown,
 } from "./stats";
 import { makeGoals, makeLogged } from "./test-utils";
@@ -202,5 +203,31 @@ describe("weekdayBreakdown", () => {
     expect(saturday.minutes).toBe(270);
     expect(saturday.goalMinutes).toBe(360);
     expect(saturday.ratio).toBeCloseTo(0.75);
+  });
+});
+
+describe("groupEntriesByDay", () => {
+  const entries = [
+    makeLogged({ day: "2026-08-29", sourceId: "a", minutes: 60 }),
+    makeLogged({ day: "2026-08-29", sourceId: "b", minutes: 30 }),
+    makeLogged({ day: "2026-08-30", sourceId: "c", minutes: 45 }),
+  ];
+
+  it("buckets by day", () => {
+    const grouped = groupEntriesByDay(entries);
+    expect(grouped.get("2026-08-29")).toHaveLength(2);
+    expect(grouped.get("2026-08-30")).toHaveLength(1);
+    expect(grouped.get("2026-08-31")).toBeUndefined();
+  });
+
+  it("reuses the work for the same array, which one screen asks for repeatedly", () => {
+    expect(groupEntriesByDay(entries)).toBe(groupEntriesByDay(entries));
+  });
+
+  it("regroups a new array, so an edit can never be served from the cache", () => {
+    const next = [...entries, makeLogged({ day: "2026-08-31", sourceId: "d", minutes: 15 })];
+    const grouped = groupEntriesByDay(next);
+    expect(grouped).not.toBe(groupEntriesByDay(entries));
+    expect(grouped.get("2026-08-31")).toHaveLength(1);
   });
 });

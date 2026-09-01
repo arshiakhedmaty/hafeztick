@@ -21,14 +21,32 @@ import {
 import type { AppData, Category, Entry, Routine, Settings } from "./types";
 import { routineOccursOn } from "./schedule";
 
+/**
+ * Grouping is cached against the entries array itself.
+ *
+ * One screen asks for this five or six times — the day, the week, the streak
+ * window, the period comparison, the advisory pass — and the store hands out
+ * the same immutable array to all of them, so the work only has to happen once
+ * per change. A WeakMap means the cache disappears with the array it belongs
+ * to and can never go stale, because nothing in the app mutates an entries
+ * array in place: every action builds a new one.
+ *
+ * The returned map, and its buckets, are read-only by contract.
+ */
+const groupCache = new WeakMap<Entry[], Map<DayKey, Entry[]>>();
+
 /** Groups entries by day once, so the stats pass stays linear. */
 export function groupEntriesByDay(entries: Entry[]): Map<DayKey, Entry[]> {
+  const cached = groupCache.get(entries);
+  if (cached) return cached;
+
   const map = new Map<DayKey, Entry[]>();
   for (const entry of entries) {
     const bucket = map.get(entry.day);
     if (bucket) bucket.push(entry);
     else map.set(entry.day, [entry]);
   }
+  groupCache.set(entries, map);
   return map;
 }
 

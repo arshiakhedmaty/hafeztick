@@ -1,7 +1,7 @@
 import { type DayKey, compareDays, lastDays, startOfWeek, addDays, weekDays, weekdayIndex } from "../date/day";
-import { type DayScore, isSuccessfulDay, totalMinutes } from "./scoring";
-import { computeDayScores } from "./stats";
-import type { AppData, Settings } from "./types";
+import { type DayScore, isSuccessfulDay, scoreDay, totalMinutes } from "./scoring";
+import { groupEntriesByDay } from "./stats";
+import type { AppData, Entry, Settings } from "./types";
 
 /**
  * What the app should say to this person today — at most one thing.
@@ -60,7 +60,7 @@ export type Insight =
       kind: "milestone";
       /** Whole hours crossed. */
       hours: number;
-      /** How long it took to get there. */
+      /** Days that carry logged time — the days those hours were built from. */
       days: number;
     }
   | {
@@ -174,35 +174,40 @@ function streakBroken(
   return { kind: "streak-broken", lostStreak: lost, bestStreak: best };
 }
 
-function milestone(
-  scores: DayScore[],
-  celebrated: number,
-): Insight | null {
-  const hours = Math.floor(totalMinutes(scores) / 60);
+/**
+ * Read straight off the entries rather than off day scores: this is the one
+ * number that must cover *all* history, not a window of it, and summing a few
+ * thousand records is cheaper than building a score for every day since the
+ * person started.
+ */
+function milestone(entries: Entry[], celebrated: number): Insight | null {
+  let minutes = 0;
+  const days = new Set<DayKey>();
+  for (const entry of entries) {
+    if (entry.status === "skipped") continue;
+    const logged = Math.max(0, entry.minutes ?? 0);
+    if (logged === 0) continue;
+    minutes += logged;
+    days.add(entry.day);
+  }
+
+  const hours = Math.floor(minutes / 60);
   const reached = [...MILESTONES].reverse().find((m) => hours >= m);
   if (reached === undefined || reached <= celebrated) return null;
 
-  return {
-    kind: "milestone",
-    hours: reached,
-    days: scoredDays(scores).length,
-  };
+  return { kind: "milestone", hours: reached, days: days.size };
 }
 
 function strongWeek(
-  data: Pick<AppData, "entries" | "settings">,
+  scoresFor: (days: DayKey[]) => DayScore[],
   today: DayKey,
 ): Insight | null {
   // The week just gone, not the one in progress: a verdict needs a full week.
   const lastWeek = weekDays(addDays(startOfWeek(today), -1));
   const weekBefore = weekDays(addDays(startOfWeek(today), -8));
 
-  const minutes = totalMinutes(
-    computeDayScores(data.entries, lastWeek, data.settings),
-  );
-  const previous = totalMinutes(
-    computeDayScores(data.entries, weekBefore, data.settings),
-  );
+  const minutes = totalMinutes(scoresFor(lastWeek));
+  const previous = totalMinutes(scoresFor(weekBefore));
 
   // Needs a real week to compare against, and a real improvement.
   if (previous < 120 || minutes < previous * 1.2) return null;
@@ -227,26 +232,32 @@ export function nextInsight(
   const snoozed = data.settings.insightSnoozedAt ?? {};
   const celebrated = data.settings.celebratedHours ?? 0;
 
-  const recent = computeDayScores(data.entries, lastDays(today, 30), data.settings);
-  const all = computeDayScores(
-    data.entries,
-    lastDays(today, 400),
-    data.settings,
-  );
+  // One pass over the entries, shared by everything below. This runs on the
+  // today screen on every change, so it stays off the interaction path.
+  const byDay = groupEntriesByDay(data.entries);
+  const scoresFor = (days: DayKey[]) =>
+    days.map((day) => scoreDay(day, byDay.get(day) ?? [], data.settings));
 
-  const candidates = [
-    goalTooHigh(recent, data.settings),
-    streakBroken(recent, data.settings, today),
-    milestone(all, celebrated),
-    strongWeek(data, today),
+  let recent: DayScore[] | null = null;
+  const recentScores = () =>
+    (recent ??= scoresFor(lastDays(today, 30)));
+
+  // Thunks, not values: the first candidate that applies is usually the only
+  // one that gets computed.
+  const candidates: Array<() => Insight | null> = [
+    () => goalTooHigh(recentScores(), data.settings),
+    () => streakBroken(recentScores(), data.settings, today),
+    () => milestone(data.entries, celebrated),
+    () => strongWeek(scoresFor, today),
   ];
 
   for (const candidate of candidates) {
-    if (!candidate) continue;
-    const since = snoozed[candidate.kind];
+    const insight = candidate();
+    if (!insight) continue;
+    const since = snoozed[insight.kind];
     // A milestone is a one-off: once celebrated it is recorded, not snoozed.
     if (since !== undefined && now - since < SNOOZE_DAYS * DAY) continue;
-    return candidate;
+    return insight;
   }
 
   return null;
