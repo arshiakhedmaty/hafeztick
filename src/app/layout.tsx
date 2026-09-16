@@ -7,13 +7,57 @@ import { AppShell } from "@/components/layout/AppShell";
 import { ToastProvider } from "@/components/ui/Toast";
 import { STORAGE_KEY } from "@/lib/storage/repository";
 
+const basePath = process.env.PAGES_BASE_PATH ?? "";
+
+/**
+ * Where the app is published, base path included.
+ *
+ * Link previews — Telegram, WhatsApp and the rest — fetch the page once and
+ * only follow an absolute image URL, so a relative one would silently produce
+ * a bare link. The deploy workflow passes the real address in.
+ */
+const siteUrl = (process.env.SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+
+const title = "حافظ‌تیک | دفترِ ساعت‌های مطالعه";
+const description =
+  "برای هر کاری که انجام می‌دهی زمانش را ثبت کن و ببین ساعت‌های مطالعه‌ات در گذر هفته‌ها چطور جمع می‌شوند.";
+
 export const metadata: Metadata = {
-  title: "حافظ‌تیک | دفترِ ساعت‌های مطالعه",
-  description:
-    "برای هر کاری که انجام می‌دهی زمانش را ثبت کن و ببین ساعت‌های مطالعه‌ات در گذر هفته‌ها چطور جمع می‌شوند.",
+  metadataBase: new URL(`${siteUrl}/`),
+  title,
+  description,
   applicationName: "HafezTick",
-  manifest: `${process.env.PAGES_BASE_PATH ?? ""}/manifest.webmanifest`,
+  manifest: `${basePath}/manifest.webmanifest`,
+  icons: {
+    icon: [
+      { url: `${basePath}/icon.svg`, type: "image/svg+xml" },
+      { url: `${basePath}/icon-192.png`, sizes: "192x192", type: "image/png" },
+    ],
+    // iOS ignores SVG and the manifest for home-screen icons; it wants this.
+    apple: [{ url: `${basePath}/apple-touch-icon.png`, sizes: "180x180" }],
+  },
   appleWebApp: { capable: true, title: "حافظ‌تیک", statusBarStyle: "default" },
+  openGraph: {
+    type: "website",
+    locale: "fa_IR",
+    url: `${siteUrl}/`,
+    title,
+    description,
+    images: [
+      {
+        url: `${siteUrl}/og.png`,
+        width: 1200,
+        height: 630,
+        alt: "حافظ‌تیک — دفترِ ساعت‌های مطالعه",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: [`${siteUrl}/og.png`],
+  },
 };
 
 export const viewport: Viewport = {

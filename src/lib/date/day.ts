@@ -122,13 +122,22 @@ export function formatMonth(key: DayKey): string {
   return `${p.monthName} ${faNum(p.jy)}`;
 }
 
-/** Human label used in headers: امروز / دیروز / فردا, otherwise the date. */
+/**
+ * The day's headline, always said relative to today.
+ *
+ * The header already carries the full date on the line beneath it, so a title
+ * that fell back to the date for anything past tomorrow printed «جمعه، ۲۷
+ * شهریور» twice, one line above the other. The title answers "how far is this
+ * from now?" instead, and the subtitle answers "which day is it?".
+ */
 export function relativeDayLabel(key: DayKey, today: DayKey = todayKey()): string {
   const delta = diffDays(key, today);
   if (delta === 0) return "امروز";
   if (delta === -1) return "دیروز";
   if (delta === 1) return "فردا";
-  return formatDay(key, { withWeekday: true });
+  if (delta === -2) return "پریروز";
+  if (delta === 2) return "پس‌فردا";
+  return delta < 0 ? `${faNum(-delta)} روز پیش` : `${faNum(delta)} روز بعد`;
 }
 
 /** First day of the Jalali month containing `key`. */

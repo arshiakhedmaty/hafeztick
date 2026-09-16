@@ -9,19 +9,29 @@ import { Icon } from "@/components/ui/Icon";
 import { DayDial } from "./DayDial";
 import { WeekStrip } from "./WeekStrip";
 
-function message(score: DayScore, successMinutes: number): string {
+/**
+ * One sentence about the viewed day. The day is named, not assumed: stepping
+ * to پس‌فردا used to be greeted with «هنوز زمانی برای امروز ثبت نکرده‌ای».
+ */
+function message(score: DayScore, successMinutes: number, isToday: boolean): string {
+  const which = isToday ? "امروز" : "این روز";
+
   if (score.goalMinutes === 0) return "برای این روز هدف ساعتی تعیین نشده است.";
-  if (score.minutes === 0) return "هنوز زمانی برای امروز ثبت نکرده‌ای.";
+  if (score.minutes === 0) {
+    return isToday
+      ? "هنوز زمانی برای امروز ثبت نکرده‌ای."
+      : "برای این روز زمانی ثبت نشده است.";
+  }
 
   const over = score.minutes - score.goalMinutes;
   if (over > 0) {
-    return `${faDuration(over, { short: true })} بیشتر از هدف امروز.`;
+    return `${faDuration(over, { short: true })} بیشتر از هدف ${which}.`;
   }
-  if (over === 0) return "هدف ساعتی امروز دقیقاً کامل شد.";
+  if (over === 0) return `هدف ساعتی ${which} دقیقاً کامل شد.`;
 
   const toSuccess = successMinutes - score.minutes;
   if (toSuccess <= 0) {
-    return `به هدف امروز رسیدی؛ ${faDuration(-over, { short: true })} تا هدف کامل مانده.`;
+    return `به هدف ${which} رسیدی؛ ${faDuration(-over, { short: true })} تا هدف کامل مانده.`;
   }
   return `${faDuration(toSuccess, { short: true })} دیگر تا «روز موفق» مانده.`;
 }
@@ -89,7 +99,7 @@ export function DaySummary({
 
         <div className="min-w-0 flex-1 text-center sm:text-start">
           <p className="text-[14.5px] leading-relaxed text-fg-soft">
-            {message(score, successMinutes)}
+            {message(score, successMinutes, day === today)}
           </p>
 
           <dl className="mt-5 grid grid-cols-3 gap-x-4">

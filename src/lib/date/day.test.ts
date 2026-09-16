@@ -93,6 +93,14 @@ describe("formatting", () => {
     expect(relativeDayLabel("2026-08-29", "2026-08-29")).toBe("امروز");
     expect(relativeDayLabel("2026-08-28", "2026-08-29")).toBe("دیروز");
     expect(relativeDayLabel("2026-08-30", "2026-08-29")).toBe("فردا");
-    expect(relativeDayLabel("2026-09-05", "2026-08-29")).toContain("شهریور");
+    expect(relativeDayLabel("2026-08-27", "2026-08-29")).toBe("پریروز");
+    expect(relativeDayLabel("2026-08-31", "2026-08-29")).toBe("پس‌فردا");
+  });
+
+  it("counts the distance further out instead of repeating the date", () => {
+    // The date itself is already the header's subtitle.
+    expect(relativeDayLabel("2026-09-05", "2026-08-29")).toBe("۷ روز بعد");
+    expect(relativeDayLabel("2026-08-26", "2026-08-29")).toBe("۳ روز پیش");
+    expect(relativeDayLabel("2026-09-05", "2026-08-29")).not.toContain("شهریور");
   });
 });

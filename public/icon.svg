@@ -1,10 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- The header's شمسه on the app's paper. Colours are the light theme's
+       --primary, --accent and --bg, pinned: an icon has no stylesheet. -->
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="40" y2="40">
-      <stop offset="0%" stop-color="#0e9c8a"/>
-      <stop offset="100%" stop-color="#c08327"/>
-    </linearGradient>
+    <radialGradient id="paper" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#f8f4ea"/>
+      <stop offset="100%" stop-color="#ebe4d3"/>
+    </radialGradient>
   </defs>
-  <rect width="40" height="40" rx="12" fill="url(#g)"/>
-  <path d="M11.5 20.8 17.4 26.5 28.5 13.5" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <rect width="512" height="512" rx="112" fill="url(#paper)"/>
+  <g transform="translate(256 256) scale(4.1)">
+    <g id="leaves">
+      <path d="M 0 -13 C 7 -21, 8.5 -32, 0 -43 C -8.5 -32, -7 -21, 0 -13 Z" fill="#0b7c72"/>
+      <path d="M 0 -13 C 7 -21, 8.5 -32, 0 -43 C -8.5 -32, -7 -21, 0 -13 Z" fill="#8c6016" transform="rotate(45)"/>
+      <path d="M 0 -13 C 7 -21, 8.5 -32, 0 -43 C -8.5 -32, -7 -21, 0 -13 Z" fill="#0b7c72" transform="rotate(90)"/>
+      <path d="M 0 -13 C 7 -21, 8.5 -32, 0 -43 C -8.5 -32, -7 -21, 0 -13 Z" fill="#8c6016" transform="rotate(135)"/>
+      <path d="M 0 -13 C 7 -21, 8.5 -32, 0 -43 C -8.5 -32, -7 -21, 0 -13 Z" fill="#0b7c72" transform="rotate(180)"/>
+      <path d="M 0 -13 C 7 -21, 8.5 -32, 0 -43 C -8.5 -32, -7 -21, 0 -13 Z" fill="#8c6016" transform="rotate(225)"/>
+      <path d="M 0 -13 C 7 -21, 8.5 -32, 0 -43 C -8.5 -32, -7 -21, 0 -13 Z" fill="#0b7c72" transform="rotate(270)"/>
+      <path d="M 0 -13 C 7 -21, 8.5 -32, 0 -43 C -8.5 -32, -7 -21, 0 -13 Z" fill="#8c6016" transform="rotate(315)"/>
+    </g>
+    <circle cx="0" cy="0" r="13.5" fill="none" stroke="#0b7c72" stroke-width="2" opacity="0.4"/>
+    <circle cx="0" cy="0" r="9" fill="#0b7c72"/>
+  </g>
 </svg>

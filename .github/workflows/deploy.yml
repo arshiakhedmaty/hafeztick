@@ -38,6 +38,8 @@ jobs:
           STATIC_EXPORT: "true"
           # Project pages are served from /<repo>, so the app needs that prefix.
           PAGES_BASE_PATH: /${{ github.event.repository.name }}
+          # Link previews need absolute URLs for the page and its image.
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
         run: npm run build
 
       - name: Publish to gh-pages
