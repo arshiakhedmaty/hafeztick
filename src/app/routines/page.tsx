@@ -145,8 +145,11 @@ export default function RoutinesPage() {
                           className="max-w-56 flex-1"
                         />
                         <span className="hz-tnum shrink-0 text-[11px] text-muted">
-                          {faDuration(stat.minutes, { short: true, zero: "۰" })} در
-                          ۳۰ روز اخیر
+                          {faDuration(stat.minutes, {
+                            short: true,
+                            zero: "۰ دقیقه",
+                          })}{" "}
+                          در ۳۰ روز اخیر
                           {stat.averageMinutes !== null && (
                             <> · هر بار {faClock(Math.round(stat.averageMinutes))}</>
                           )}

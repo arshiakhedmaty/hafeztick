@@ -23,12 +23,15 @@ export function WeekStrip({
   day,
   today,
   settings,
+  onSelect,
 }: {
   /** Saturday through Friday of the week containing `day`. */
   scores: DayScore[];
   day: DayKey;
   today: DayKey;
   settings: Pick<Settings, "successThreshold">;
+  /** Jump straight to a day. The strip is a picker, not just a picture. */
+  onSelect: (day: DayKey) => void;
 }) {
   return (
     <ol className="flex items-end justify-between gap-1">
@@ -38,34 +41,41 @@ export function WeekStrip({
         const weekday = weekdayIndex(score.day);
         const successful = !future && isSuccessfulDay(score, settings);
 
+        const summary = future
+          ? "هنوز نرسیده"
+          : `${faDuration(score.minutes, { short: true, zero: "۰ دقیقه" })} از ${faGoal(score.goalMinutes)}`;
+
         return (
-          <li
-            key={score.day}
-            className={cn(
-              "flex flex-1 flex-col items-center gap-1 rounded-lg py-1.5 transition-colors",
-              isViewed && "bg-surface-2",
-            )}
-            title={`${WEEKDAY_NAMES[weekday]} — ${
-              future
-                ? "هنوز نرسیده"
-                : `${faDuration(score.minutes, { short: true, zero: "۰" })} از ${faGoal(score.goalMinutes)}`
-            }`}
-          >
-            <DayFlower
-              weekday={weekday}
-              ratio={future ? null : score.ratio}
-              successful={successful}
-              size={26}
-              label={WEEKDAY_NAMES[weekday]}
-            />
-            <span
+          <li key={score.day} className="flex-1">
+            {/* The rosettes are the fastest way to reach a day: the arrows walk
+                one step at a time, and Wednesday is right there on screen. */}
+            <button
+              type="button"
+              onClick={() => onSelect(score.day)}
+              aria-current={isViewed ? "date" : undefined}
+              aria-label={`${WEEKDAY_NAMES[weekday]} — ${summary}`}
+              title={`${WEEKDAY_NAMES[weekday]} — ${summary}`}
               className={cn(
-                "text-[10.5px] leading-none",
-                isViewed ? "font-semibold text-fg-soft" : "text-muted",
+                "flex w-full flex-col items-center gap-1 rounded-lg py-1.5 transition-colors",
+                isViewed ? "bg-surface-2" : "hover:bg-surface-2/70",
               )}
             >
-              {WEEKDAY_SHORT[weekday]}
-            </span>
+              <DayFlower
+                weekday={weekday}
+                ratio={future ? null : score.ratio}
+                successful={successful}
+                size={26}
+                decorative
+              />
+              <span
+                className={cn(
+                  "text-[10.5px] leading-none",
+                  isViewed ? "font-semibold text-fg-soft" : "text-muted",
+                )}
+              >
+                {WEEKDAY_SHORT[weekday]}
+              </span>
+            </button>
           </li>
         );
       })}

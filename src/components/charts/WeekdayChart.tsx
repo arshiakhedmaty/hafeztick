@@ -99,7 +99,10 @@ export function WeekdayChart({
       <p className="mt-3 text-[12px] leading-relaxed text-muted">
         بهترین روزت <span className="text-fg-soft">{WEEKDAY_NAMES[best.weekday]}</span>{" "}
         است: به‌طور میانگین{" "}
-        {faDuration(Math.round(best.minutes ?? 0), { short: true, zero: "۰" })}{" "}
+        {faDuration(Math.round(best.minutes ?? 0), {
+          short: true,
+          zero: "۰ دقیقه",
+        })}{" "}
         مطالعه، یعنی {faPercent(best.ratio ?? 0)}٪ از هدف آن روز.
       </p>
     </div>

@@ -67,19 +67,21 @@ function Comparison({ label, data }: { label: string; data: PeriodComparison }) 
 
   return (
     <div className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface-2/40 px-4 py-3">
+      {/* Each figure gets its own line. Run together, «۱ ساعت ۲۱ دقیقه قبلاً ۰»
+          reads as one broken sentence rather than two separate numbers. */}
       <div className="min-w-0">
         <p className="text-[12px] text-muted">{label}</p>
         <p className="hz-tnum mt-1 text-[15px] font-semibold text-fg">
           {current === null
             ? "—"
-            : faDuration(Math.round(current), { short: true, zero: "۰" })}
-          {previous !== null && (
-            <span className="mr-2 text-[12px] font-normal text-muted">
-              قبلاً{" "}
-              {faDuration(Math.round(previous), { short: true, zero: "۰" })}
-            </span>
-          )}
+            : faDuration(Math.round(current), { short: true, zero: "۰ دقیقه" })}
         </p>
+        {previous !== null && (
+          <p className="hz-tnum mt-0.5 text-[11.5px] text-muted">
+            پیش از این{" "}
+            {faDuration(Math.round(previous), { short: true, zero: "۰ دقیقه" })}
+          </p>
+        )}
       </div>
 
       <span
@@ -91,13 +93,19 @@ function Comparison({ label, data }: { label: string; data: PeriodComparison }) 
               : "bg-surface-2 text-muted"
         }`}
       >
-        <Icon
-          name={up ? "arrow-up" : down ? "arrow-down" : "minus"}
-          size="0.9em"
-        />
-        {delta === null
-          ? "—"
-          : faDuration(Math.abs(Math.round(delta)), { short: true, zero: "۰" })}
+        {delta === null ? (
+          "بدون مقایسه"
+        ) : (
+          <>
+            <Icon
+              name={up ? "arrow-up" : down ? "arrow-down" : "minus"}
+              size="0.9em"
+            />
+            {up || down
+              ? faDuration(Math.abs(Math.round(delta)), { short: true })
+              : "بدون تغییر"}
+          </>
+        )}
       </span>
     </div>
   );
@@ -256,7 +264,7 @@ export default function StatsPage() {
                       </span>
                       <span className="hz-tnum shrink-0 text-[12px] text-muted">
                         {routine.currentStreak > 1 && (
-                          <span className="ml-2 inline-flex items-center gap-1 text-accent">
+                          <span className="me-2 inline-flex items-center gap-1 text-accent">
                             <Icon name="flame" size="0.85em" />
                             {faNum(routine.currentStreak)}
                           </span>

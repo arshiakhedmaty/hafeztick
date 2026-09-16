@@ -109,6 +109,7 @@ export default function TodayPage() {
         day={day}
         today={today}
         settings={data.settings}
+        onSelectDay={setDay}
       />
 
       <Advisory />

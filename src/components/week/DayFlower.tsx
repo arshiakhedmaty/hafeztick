@@ -36,6 +36,7 @@ function DayFlowerBase({
   size = 34,
   className,
   label,
+  decorative = false,
 }: {
   /** 0 = Saturday … 6 = Friday. Also the number of leaves, plus one. */
   weekday: number;
@@ -45,6 +46,8 @@ function DayFlowerBase({
   size?: number;
   className?: string;
   label?: string;
+  /** Inside an already-labelled control, so it is not announced a second time. */
+  decorative?: boolean;
 }) {
   const leaves = Math.min(7, Math.max(1, weekday + 1));
   const step = progressStep(ratio);
@@ -66,12 +69,15 @@ function DayFlowerBase({
       width={size}
       height={size}
       className={cn("shrink-0 overflow-visible", className)}
-      role="img"
+      role={decorative ? undefined : "img"}
+      aria-hidden={decorative || undefined}
       aria-label={
-        label ??
-        `${WEEKDAY_NAMES[weekday]} — ${
-          ratio === null ? "بدون هدف" : `${faPercent(Math.min(1, ratio))}٪ از هدف`
-        }`
+        decorative
+          ? undefined
+          : (label ??
+            `${WEEKDAY_NAMES[weekday]} — ${
+              ratio === null ? "بدون هدف" : `${faPercent(Math.min(1, ratio))}٪ از هدف`
+            }`)
       }
     >
       {Array.from({ length: leaves }, (_, index) => {
@@ -132,5 +138,5 @@ export const DayFlower = memo(DayFlowerBase);
 /** The sentence under a flower: hours done against the day's goal. */
 export function flowerHint(minutes: number, goalMinutes: number): string {
   if (goalMinutes === 0) return "بدون هدف";
-  return `${faDuration(minutes, { short: true, zero: "۰" })} از ${faGoal(goalMinutes)}`;
+  return `${faDuration(minutes, { short: true, zero: "۰ دقیقه" })} از ${faGoal(goalMinutes)}`;
 }

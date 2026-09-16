@@ -44,6 +44,7 @@ export function DaySummary({
   day,
   today,
   settings,
+  onSelectDay,
 }: {
   score: DayScore;
   /** Minutes needed to make this day count as successful. */
@@ -58,6 +59,8 @@ export function DaySummary({
   day: DayKey;
   today: DayKey;
   settings: Pick<Settings, "successThreshold">;
+  /** Lets the rosette strip be the week picker it already looks like. */
+  onSelectDay: (day: DayKey) => void;
 }) {
   const ratio = score.ratio;
   const complete = ratio !== null && ratio >= 1;
@@ -142,8 +145,9 @@ export function DaySummary({
                             : "text-muted"
                       }
                     />
-                    {faDuration(Math.abs(weekDelta), { short: true, zero: "۰" })} در
-                    روز
+                    {Math.abs(weekDelta) > 1
+                      ? `${faDuration(Math.abs(weekDelta), { short: true })} در روز`
+                      : "بدون تغییر"}
                   </>
                 )}
               </dd>
@@ -158,6 +162,7 @@ export function DaySummary({
           day={day}
           today={today}
           settings={settings}
+          onSelect={onSelectDay}
         />
       </div>
     </section>

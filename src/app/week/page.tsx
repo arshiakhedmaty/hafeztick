@@ -169,7 +169,12 @@ export default function WeekPage() {
                   }
                   size="0.85em"
                 />
-                {faDuration(Math.abs(delta), { short: true, zero: "۰" })}
+                {/* An arrow beside a bare «۰» says nothing; say it in words. */}
+                <span className={Math.abs(delta) > 5 ? "" : "text-[13px]"}>
+                  {Math.abs(delta) > 5
+                    ? faDuration(Math.abs(delta), { short: true })
+                    : "بدون تغییر"}
+                </span>
               </span>
             </p>
           </div>

@@ -71,7 +71,7 @@ export function DayColumn({
           size={30}
           label={`${WEEKDAY_NAMES[parts.weekday]} — ${faDuration(score.minutes, {
             short: true,
-            zero: "۰",
+            zero: "۰ دقیقه",
           })} از ${faGoal(score.goalMinutes)}`}
         />
       </div>

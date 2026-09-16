@@ -469,8 +469,8 @@ export default function SettingsPage() {
           <p className="hz-tnum mt-4 text-[12px] text-muted">
             {faNum(data.routines.length)} روتین · {faNum(data.tasks.length)} کار ·{" "}
             {faNum(data.entries.length)} رکورد ·{" "}
-            {faDuration(loggedMinutes, { short: true, zero: "۰" })} مطالعه‌ی
-            ثبت‌شده
+            {faDuration(loggedMinutes, { short: true, zero: "۰ دقیقه" })}{" "}
+            مطالعه‌ی ثبت‌شده
           </p>
         </Card>
       </div>
