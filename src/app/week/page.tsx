@@ -226,6 +226,9 @@ export default function WeekPage() {
             today={today}
             onAdd={(target) => setDialog({ open: true, taskId: null, day: target })}
             onLog={setLogging}
+            onEdit={(entry) =>
+              setDialog({ open: true, taskId: entry.sourceId, day: null })
+            }
           />
         ))}
       </div>

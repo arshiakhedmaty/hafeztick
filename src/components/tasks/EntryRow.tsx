@@ -13,15 +13,20 @@ import { Menu, type MenuItem } from "@/components/ui/Menu";
 import { Icon } from "@/components/ui/Icon";
 import { DurationField } from "@/components/ui/DurationField";
 import { Checkbox } from "./Checkbox";
+import { CategoryPicker } from "./CategoryPicker";
+
+/** What the inline field is doing: piling time on, or correcting the total. */
+type FieldMode = "add" | "edit";
 
 /**
- * One planned item, and the time that went into it.
+ * One planned item, the time that went into it, and whether it is finished.
  *
- * The row has two states. Unlogged, it is an invitation: tapping anywhere opens
- * a small hours/minutes field right under the title. Logged, it shows the
- * duration as the row's headline number, and tapping that number reopens the
- * field to correct it. Nothing here counts an item — the only thing that leaves
- * this row is a number of minutes.
+ * Those last two are deliberately separate. Typing a duration says "I spent
+ * this long on it" and nothing more — the number is added to whatever the item
+ * already carries, so an hour this morning and an hour tonight make two hours
+ * and the item stays open in between. Only the tick says "I am done with this".
+ * Conflating the two meant a language session disappeared from the day the
+ * first time any time was recorded against it.
  */
 export function EntryRow({
   entry,
@@ -41,56 +46,97 @@ export function EntryRow({
   const toast = useToast();
 
   const category = categoryById(data, entry.categoryId);
-  const logged = entry.minutes > 0;
+  const hasTime = entry.minutes > 0;
+  const done = entry.status === "done";
   const skipped = entry.status === "skipped";
+  const isTask = entry.sourceType === "task";
+  const canRestructure = editable && isTask;
 
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(entry.minutes);
+  const [field, setField] = useState<FieldMode | null>(null);
+  const [draft, setDraft] = useState(0);
+  const [picking, setPicking] = useState(false);
 
-  const startEditing = () => {
+  const openAdd = () => {
+    setDraft(0);
+    setField("add");
+  };
+
+  const openEdit = () => {
     setDraft(entry.minutes);
-    setOpen(true);
+    setField("edit");
   };
 
   const confirm = () => {
     const previous = entry.minutes;
-    actions.logEntry(entry, draft);
-    setOpen(false);
+    const undo = {
+      label: "برگرداندن",
+      onClick: () => actions.logEntry(entry, previous),
+    };
 
-    if (draft > 0) {
+    if (field === "add") {
+      if (draft > 0) {
+        actions.addTime(entry, draft);
+        toast({
+          message: `${faDuration(draft, { short: true })} اضافه شد — مجموع ${faDuration(
+            previous + draft,
+            { short: true },
+          )}`,
+          icon: "clock",
+          action: undo,
+        });
+      }
+    } else {
+      actions.logEntry(entry, draft);
       toast({
-        message: `${entry.title}: ${faDuration(draft, { short: true })} ثبت شد`,
-        icon: "check",
-        action: {
-          label: "برگرداندن",
-          onClick: () => actions.logEntry(entry, previous),
-        },
+        message:
+          draft > 0
+            ? `مجموع به ${faDuration(draft, { short: true })} تغییر کرد`
+            : "زمان پاک شد",
+        icon: draft > 0 ? "clock" : "close",
+        action: undo,
       });
     }
+
+    setField(null);
   };
 
   const menuItems: MenuItem[] = [];
 
-  if (logged) {
-    menuItems.push({
-      label: "ویرایش زمان (L)",
-      icon: "clock",
-      onClick: startEditing,
-    });
+  if (!skipped) {
+    menuItems.push({ label: "افزودن زمان (L)", icon: "clock", onClick: openAdd });
+  }
+
+  if (hasTime) {
+    menuItems.push({ label: "اصلاح مجموع زمان", icon: "pencil", onClick: openEdit });
     menuItems.push({
       label: "پاک کردن زمان",
       icon: "close",
       onClick: () => {
+        const previous = entry.minutes;
         actions.clearEntry(entry);
-        toast({ message: "زمان پاک شد", icon: "close" });
+        toast({
+          message: "زمان پاک شد",
+          icon: "close",
+          action: {
+            label: "برگرداندن",
+            onClick: () => actions.logEntry(entry, previous),
+          },
+        });
       },
     });
   }
 
-  if (editable && entry.sourceType === "task") {
+  if (canRestructure) {
+    menuItems.push({
+      label: category ? "تغییر دسته‌بندی" : "انتخاب دسته‌بندی",
+      icon: "inbox",
+      onClick: () => setPicking(true),
+    });
+
     if (onEdit) {
       menuItems.push({ label: "ویرایش", icon: "pencil", onClick: () => onEdit(entry) });
     }
+
     menuItems.push({
       label: "انتقال به فردا",
       icon: "chevron-start",
@@ -114,11 +160,11 @@ export function EntryRow({
     icon: "skip",
     onClick: () => {
       actions.setEntryStatus(entry, skipped ? "pending" : "skipped");
-      setOpen(false);
+      setField(null);
     },
   });
 
-  if (editable && entry.sourceType === "task") {
+  if (canRestructure) {
     menuItems.push({
       label: "حذف",
       icon: "trash",
@@ -146,17 +192,23 @@ export function EntryRow({
     const target = event.target as HTMLElement;
     const typing = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
 
-    if (event.code === "Escape" && open) {
+    if (event.code === "Escape" && field) {
       event.preventDefault();
-      setOpen(false);
+      setField(null);
       return;
     }
     if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
     if (event.code === "KeyL" && !skipped) {
       event.preventDefault();
-      startEditing();
+      openAdd();
     }
   };
+
+  const statusLabel = done
+    ? "انجام شد"
+    : hasTime
+      ? `${faDuration(entry.minutes, { short: true })} ثبت شده، هنوز باز است`
+      : "بدون زمان";
 
   return (
     <li
@@ -164,29 +216,27 @@ export function EntryRow({
       onKeyDown={onKeyDown}
       className={cn(
         "group rounded-xl border border-transparent px-2.5 py-2.5 transition-colors duration-200",
-        open ? "border-line bg-surface-2/60" : "hover:border-line hover:bg-surface-2/60",
+        field ? "border-line bg-surface-2/60" : "hover:border-line hover:bg-surface-2/60",
         skipped && "opacity-55",
       )}
     >
       <div className="flex items-center gap-3">
         <Checkbox
-          checked={logged}
-          onToggle={() => (logged ? actions.clearEntry(entry) : startEditing())}
-          label={`${entry.title} — ${
-            logged ? `${faDuration(entry.minutes, { short: true })} ثبت شده` : "بدون زمان"
-          }`}
+          checked={done}
+          onToggle={() => actions.toggleEntryDone(entry)}
+          label={`${entry.title} — ${statusLabel}`}
         />
 
         <button
           type="button"
-          onClick={startEditing}
+          onClick={openAdd}
           disabled={skipped}
           className="min-w-0 flex-1 text-start"
         >
           <span
             className={cn(
               "block truncate text-[14px] leading-6 transition-colors duration-300",
-              logged ? "text-fg-soft" : "text-fg",
+              done ? "text-fg-soft line-through decoration-line-strong" : "text-fg",
               skipped && "line-through decoration-muted/60",
             )}
           >
@@ -198,11 +248,11 @@ export function EntryRow({
         </button>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          {logged ? (
+          {hasTime ? (
             <button
               type="button"
-              onClick={startEditing}
-              title={faDuration(entry.minutes)}
+              onClick={openAdd}
+              title={`${faDuration(entry.minutes)} — برای افزودن زمان بزن`}
               className="hz-tnum rounded-full bg-primary-soft px-2.5 py-1 text-[12px] font-semibold text-primary transition-colors hover:bg-primary/15"
             >
               {faClock(entry.minutes)}
@@ -211,7 +261,7 @@ export function EntryRow({
             !skipped && (
               <button
                 type="button"
-                onClick={startEditing}
+                onClick={openAdd}
                 title="ثبت زمان (کلید L)"
                 className="flex items-center gap-1 rounded-full border border-dashed border-line px-2.5 py-1 text-[11.5px] text-muted transition-colors hover:border-primary/60 hover:text-primary"
               >
@@ -221,7 +271,7 @@ export function EntryRow({
             )
           )}
 
-          {entry.priority === "high" && !logged && (
+          {entry.priority === "high" && !done && (
             <span title="مهم" aria-label="مهم" className="text-accent">
               <Icon name="flame" size="0.95em" />
             </span>
@@ -237,15 +287,11 @@ export function EntryRow({
             </span>
           )}
 
-          {category && (
-            <span className="flex items-center gap-1.5 rounded-full bg-surface-2 px-2 py-0.5 text-[11px] text-muted">
-              <span
-                className="size-1.5 rounded-full"
-                style={{ backgroundColor: categoryVar(category.color) }}
-              />
-              <span className="hidden sm:inline">{category.name}</span>
-            </span>
-          )}
+          <CategoryChip
+            name={category?.name ?? null}
+            color={category ? categoryVar(category.color) : null}
+            onClick={canRestructure ? () => setPicking(true) : undefined}
+          />
 
           <div className="opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 max-sm:opacity-100">
             <Menu items={menuItems} />
@@ -253,20 +299,33 @@ export function EntryRow({
         </div>
       </div>
 
-      {open && (
+      {field && (
         <div className="hz-rise mt-2.5 border-t border-line pt-2.5">
+          {field === "add" && hasTime && (
+            <p className="hz-tnum mb-2 text-[11.5px] text-muted">
+              مجموع فعلی {faDuration(entry.minutes, { short: true })}
+              {draft > 0 && (
+                <span className="text-primary">
+                  {" "}
+                  ← {faDuration(entry.minutes + draft, { short: true })}
+                </span>
+              )}
+            </p>
+          )}
+
           <DurationField
             value={draft}
             onChange={setDraft}
             onSubmit={confirm}
-            onCancel={() => setOpen(false)}
+            onCancel={() => setField(null)}
             autoFocus
             compact
           />
+
           <div className="mt-2 flex items-center justify-end gap-1.5">
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => setField(null)}
               className="rounded-lg px-3 py-1.5 text-[12.5px] text-muted transition-colors hover:text-fg-soft"
             >
               انصراف
@@ -274,13 +333,78 @@ export function EntryRow({
             <button
               type="button"
               onClick={confirm}
-              className="rounded-lg bg-primary px-3.5 py-1.5 text-[12.5px] font-medium text-primary-contrast transition-colors hover:bg-primary-hover"
+              disabled={field === "add" && draft === 0}
+              className="rounded-lg bg-primary px-3.5 py-1.5 text-[12.5px] font-medium text-primary-contrast transition-colors hover:bg-primary-hover disabled:opacity-45"
             >
-              {draft > 0 ? "ثبت" : "پاک کردن"}
+              {field === "edit" ? (draft > 0 ? "ثبت" : "پاک کردن") : "افزودن"}
             </button>
           </div>
         </div>
       )}
+
+      <CategoryPicker
+        open={picking}
+        title={entry.title}
+        value={entry.categoryId}
+        onSelect={(categoryId) => {
+          actions.updateTask(entry.sourceId, { categoryId });
+          toast({ message: "دسته‌بندی به‌روز شد", icon: "check" });
+        }}
+        onClose={() => setPicking(false)}
+      />
     </li>
+  );
+}
+
+/**
+ * The category badge, which doubles as the way to set one.
+ *
+ * An uncategorised item shows a dashed outline rather than nothing at all, so
+ * the gap is visible and tappable instead of being a feature you have to know
+ * about. On phones only the dot survives — the row has no width to spare.
+ */
+function CategoryChip({
+  name,
+  color,
+  onClick,
+}: {
+  name: string | null;
+  color: string | null;
+  onClick?: () => void;
+}) {
+  if (!name && !onClick) return null;
+
+  const content = (
+    <>
+      <span
+        className={cn(
+          "size-1.5 rounded-full",
+          !color && "border border-dashed border-line-strong",
+        )}
+        style={color ? { backgroundColor: color } : undefined}
+      />
+      <span className="hidden sm:inline">{name ?? "دسته"}</span>
+    </>
+  );
+
+  const className = cn(
+    "flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] text-muted",
+    name ? "bg-surface-2" : "border border-dashed border-line",
+    onClick && "transition-colors hover:text-fg-soft",
+    onClick && (name ? "hover:bg-line" : "hover:border-primary/50 hover:text-primary"),
+  );
+
+  if (!onClick) return <span className={className}>{content}</span>;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={name ? `دسته‌بندی: ${name}` : "انتخاب دسته‌بندی"}
+      aria-label={name ? `دسته‌بندی: ${name}` : "انتخاب دسته‌بندی"}
+      className={className}
+    >
+      {content}
+    </button>
   );
 }

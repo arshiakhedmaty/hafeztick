@@ -106,6 +106,22 @@ function TaskForm({
       }
     >
       <div className="space-y-4">
+        {/* Category leads: it is the field most often missing after quick
+            capture, and the one that decides where the time lands in the
+            statistics. The title is already known by the time you get here. */}
+        <SelectField
+          label="دسته"
+          value={categoryId ?? ""}
+          onChange={(event) => setCategoryId(event.target.value || null)}
+        >
+          <option value="">بدون دسته</option>
+          {data.categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </SelectField>
+
         <TextField
           label="عنوان"
           value={title}
@@ -123,27 +139,12 @@ function TaskForm({
           placeholder="جزئیات، یادداشت یا لینک"
         />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <SelectField
-            label="دسته"
-            value={categoryId ?? ""}
-            onChange={(event) => setCategoryId(event.target.value || null)}
-          >
-            <option value="">بدون دسته</option>
-            {data.categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </SelectField>
-
-          <Segmented
-            label="اهمیت"
-            value={priority}
-            options={PRIORITY_OPTIONS}
-            onChange={setPriority}
-          />
-        </div>
+        <Segmented
+          label="اهمیت"
+          value={priority}
+          options={PRIORITY_OPTIONS}
+          onChange={setPriority}
+        />
 
         <div>
           <Label>تاریخ</Label>

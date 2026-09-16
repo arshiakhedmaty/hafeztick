@@ -2,14 +2,17 @@
 
 import { cn } from "@/lib/utils/cn";
 import { faNum, faPercent } from "@/lib/utils/number";
+import { categoryVar } from "@/lib/utils/colors";
 import { faClock, faDuration, faGoal } from "@/lib/utils/duration";
 import { barValue, progressTone } from "@/lib/utils/progress";
 import { type DayKey, compareDays, jalaliParts } from "@/lib/date/day";
 import { WEEKDAY_NAMES } from "@/lib/date/jalali";
 import type { Entry } from "@/lib/domain/types";
-import { entriesForDay } from "@/lib/domain/selectors";
+import { categoryById, entriesForDay } from "@/lib/domain/selectors";
 import { isSuccessfulDay, scoreDay } from "@/lib/domain/scoring";
 import { useApp } from "@/lib/store/AppStore";
+import { useToast } from "@/components/ui/Toast";
+import { Menu } from "@/components/ui/Menu";
 import { ProgressBar } from "@/components/ui/ProgressRing";
 import { Icon } from "@/components/ui/Icon";
 import { DayFlower } from "./DayFlower";
@@ -20,11 +23,13 @@ export function DayColumn({
   today,
   onAdd,
   onLog,
+  onEdit,
 }: {
   day: DayKey;
   today: DayKey;
   onAdd: (day: DayKey) => void;
   onLog: (entry: Entry) => void;
+  onEdit: (entry: Entry) => void;
 }) {
   const { data } = useApp();
   const entries = entriesForDay(data, day, today);
@@ -99,37 +104,16 @@ export function DayColumn({
         </span>
       </div>
 
-      <ul className="flex-1 space-y-1">
-        {entries.map((entry: Entry) => {
-          const logged = entry.minutes > 0;
-          return (
-            <li key={entry.id}>
-              <button
-                type="button"
-                onClick={() => onLog(entry)}
-                className="flex w-full items-center gap-2 rounded-lg px-1 py-0.5 text-start transition-colors hover:bg-surface-2"
-              >
-                <span
-                  className={cn(
-                    "min-w-0 flex-1 truncate text-[12.5px] leading-5 transition-colors",
-                    logged ? "text-fg-soft" : "text-muted",
-                    entry.status === "skipped" && "opacity-55 line-through",
-                  )}
-                >
-                  {entry.title}
-                </span>
-                <span
-                  className={cn(
-                    "hz-tnum shrink-0 text-[11px]",
-                    logged ? "font-semibold text-primary" : "text-muted/60",
-                  )}
-                >
-                  {logged ? faClock(entry.minutes) : "—"}
-                </span>
-              </button>
-            </li>
-          );
-        })}
+      <ul className="flex-1 space-y-0.5">
+        {entries.map((entry: Entry) => (
+          <WeekEntry
+            key={entry.id}
+            entry={entry}
+            editable={!isPast}
+            onLog={onLog}
+            onEdit={onEdit}
+          />
+        ))}
 
         {entries.length === 0 && (
           <li className="py-3 text-center text-[11px] text-muted/70">خالی</li>
@@ -147,5 +131,95 @@ export function DayColumn({
         </button>
       )}
     </div>
+  );
+}
+
+/**
+ * One line of a day column: which area of life it belongs to, and its time.
+ *
+ * The board answers "where did my week go?", and at this size a category tells
+ * you that far faster than a title does — «زبان» reads at a glance where
+ * «تمرین درس هفتم گرامر» truncates to nothing useful. The title is still one
+ * tap away, as the heading of the dialog this row opens.
+ */
+function WeekEntry({
+  entry,
+  editable,
+  onLog,
+  onEdit,
+}: {
+  entry: Entry;
+  editable: boolean;
+  onLog: (entry: Entry) => void;
+  onEdit: (entry: Entry) => void;
+}) {
+  const { data, actions } = useApp();
+  const toast = useToast();
+
+  const category = categoryById(data, entry.categoryId);
+  const logged = entry.minutes > 0;
+  const label = category?.name ?? entry.title;
+  const canRestructure = editable && entry.sourceType === "task";
+
+  return (
+    <li className="group/row flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => onLog(entry)}
+        title={entry.title}
+        className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-1 py-1 text-start transition-colors hover:bg-surface-2"
+      >
+        <span
+          className={cn(
+            "size-1.5 shrink-0 rounded-full",
+            !category && "border border-dashed border-line-strong",
+          )}
+          style={category ? { backgroundColor: categoryVar(category.color) } : undefined}
+        />
+        <span
+          className={cn(
+            "min-w-0 flex-1 truncate text-[12.5px] leading-5 transition-colors",
+            logged ? "text-fg-soft" : "text-muted",
+            entry.status === "done" && "line-through decoration-line-strong",
+            entry.status === "skipped" && "opacity-55 line-through",
+          )}
+        >
+          {label}
+        </span>
+        <span
+          className={cn(
+            "hz-tnum shrink-0 text-[11px]",
+            logged ? "font-semibold text-primary" : "text-muted/60",
+          )}
+        >
+          {logged ? faClock(entry.minutes) : "—"}
+        </span>
+      </button>
+
+      {canRestructure && (
+        <div className="opacity-0 transition-opacity focus-within:opacity-100 group-hover/row:opacity-100 max-sm:opacity-100">
+          <Menu
+            label={`گزینه‌های ${entry.title}`}
+            items={[
+              { label: "ثبت زمان", icon: "clock", onClick: () => onLog(entry) },
+              { label: "ویرایش", icon: "pencil", onClick: () => onEdit(entry) },
+              {
+                label: "حذف",
+                icon: "trash",
+                danger: true,
+                onClick: () => {
+                  actions.deleteTask(entry.sourceId);
+                  toast({
+                    message: "کار حذف شد",
+                    icon: "trash",
+                    action: { label: "برگرداندن", onClick: () => actions.undo() },
+                  });
+                },
+              },
+            ]}
+          />
+        </div>
+      )}
+    </li>
   );
 }

@@ -25,6 +25,7 @@ import { Advisory } from "@/components/today/Advisory";
 import { DayHeader } from "@/components/today/DayHeader";
 import { DaySummary } from "@/components/today/DaySummary";
 import { FlexibleSection } from "@/components/today/FlexibleSection";
+import { OverdueNotice } from "@/components/today/OverdueNotice";
 
 export default function TodayPage() {
   const { data, actions, today, ready } = useApp();
@@ -42,19 +43,16 @@ export default function TodayPage() {
 
   const view = useMemo(() => {
     const entries = entriesForDay(data, day, today);
-    // "Open" now means "no time logged yet" — a ticked box is no longer the
-    // thing that moves an item out of the working list.
-    const open = entries.filter(
-      (entry) => entry.status !== "skipped" && entry.minutes === 0,
-    );
+    // Open means "still on the list": the tick is what settles an item, not the
+    // clock. Something with two hours logged that is not finished belongs up
+    // here, where more time can be added to it.
+    const open = entries.filter((entry) => entry.status === "pending");
     const score = scoreDay(day, entries, data.settings);
     return {
       entries,
       routines: open.filter((entry) => entry.sourceType === "routine"),
       tasks: open.filter((entry) => entry.sourceType === "task"),
-      settled: entries.filter(
-        (entry) => entry.status === "skipped" || entry.minutes > 0,
-      ),
+      settled: entries.filter((entry) => entry.status !== "pending"),
       score,
       successful: isSuccessfulDay(score, data.settings),
       successMinutes: successMinutesFor(data.settings, day),
@@ -115,31 +113,7 @@ export default function TodayPage() {
 
       <Advisory />
 
-      {overdue.length > 0 && (
-        <div className="hz-rise mb-5 flex flex-wrap items-center justify-between gap-3 rounded-card border border-accent/35 bg-accent-soft/60 px-4 py-3">
-          <p className="flex items-center gap-2 text-[13px] text-fg-soft">
-            <Icon name="clock" size="1.1em" className="text-accent" />
-            {faNum(overdue.length)} کار از روزهای گذشته باز مانده است.
-          </p>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              actions.moveTasks(
-                overdue.map((entry) => entry.sourceId),
-                today,
-              );
-              toast({
-                message: `${faNum(overdue.length)} کار به امروز منتقل شد`,
-                icon: "calendar",
-                action: { label: "برگرداندن", onClick: () => actions.undo() },
-              });
-            }}
-          >
-            انتقال همه به امروز
-          </Button>
-        </div>
-      )}
+      <OverdueNotice entries={overdue} today={today} />
 
       <FlexibleSection day={day} />
 
@@ -217,8 +191,8 @@ export default function TodayPage() {
             <EmptyState
               compact
               icon="check"
-              title="برای همه‌ی کارهای این روز زمان ثبت شد"
-              description="چیزی بدون زمان باقی نمانده."
+              title="همه‌ی کارهای این روز تمام شد"
+              description="چیزی روی لیست باز نمانده."
             />
           )}
 
@@ -242,7 +216,7 @@ export default function TodayPage() {
                   name={showDone ? "chevron-start" : "chevron-end"}
                   size="1em"
                 />
-                ثبت‌شده‌ها
+                تمام‌شده‌ها
                 <span className="hz-tnum rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px]">
                   {faNum(view.settled.length)}
                 </span>

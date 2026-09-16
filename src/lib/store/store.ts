@@ -63,6 +63,20 @@ function upsertEntry(entries: Entry[], entry: Entry): Entry[] {
 }
 
 /**
+ * Whether a task's entry may be dropped when the task is rescheduled or deleted.
+ *
+ * Today and the days ahead are still plan, so they are always rewritten. A past
+ * day is history and normally untouchable — but an entry carrying no minutes
+ * recorded nothing, and leaving one behind is what kept a rescheduled leftover
+ * sitting in the «کارهای باقی‌مانده» box for ever. Anything with time on it, or
+ * deliberately skipped, stays exactly where it is.
+ */
+function isReleasable(entry: Entry, today: DayKey): boolean {
+  if (compareDays(entry.day, today) >= 0) return true;
+  return entry.status === "pending" && entry.minutes === 0;
+}
+
+/**
  * The application store.
  *
  * It lives outside React on purpose: the source of truth is local storage, an
@@ -235,28 +249,35 @@ export class AppStore {
   // --- Entries -------------------------------------------------------------
 
   /**
-   * Records how long an item actually took.
+   * Sets the total time recorded against an item.
    *
-   * This is the only way progress enters the app. There is no timer to start
-   * and no timer to forget to stop: the user measures the time however they
-   * like, and the app is the ledger. Logging zero minutes is the same as
-   * clearing the item, so undo needs no separate concept.
+   * Time and completion are two different statements, and the app no longer
+   * conflates them. Saying "I spent forty minutes on this" is not the same as
+   * saying "I am finished with it" — a language session gets an hour today and
+   * another hour tomorrow, and the item stays open the whole time. Only the
+   * tick marks something finished, and only {@link setEntryStatus} moves it.
    */
   logEntry = (entry: Entry, minutes: number): void => {
     const safe = clampMinutes(minutes);
 
     this.update((previous) => ({
       ...previous,
-      entries: upsertEntry(previous.entries, {
-        ...entry,
-        minutes: safe,
-        status: safe > 0 ? "done" : "pending",
-        doneAt: safe > 0 ? (entry.doneAt ?? Date.now()) : null,
-      }),
+      entries: upsertEntry(previous.entries, { ...entry, minutes: safe }),
     }));
   };
 
-  /** Back to "planned, nothing logged". */
+  /**
+   * Adds a session to whatever the item already carries.
+   *
+   * This is the ordinary way time is entered: each sitting is typed in as its
+   * own number and accumulates, so nobody has to do the arithmetic themselves
+   * or remember what the running total was.
+   */
+  addTime = (entry: Entry, minutes: number): void => {
+    this.logEntry(entry, entry.minutes + clampMinutes(minutes));
+  };
+
+  /** Back to "planned, nothing logged" — the tick is left alone. */
   clearEntry = (entry: Entry): void => {
     this.logEntry(entry, 0);
   };
@@ -267,11 +288,17 @@ export class AppStore {
       entries: upsertEntry(previous.entries, {
         ...entry,
         status,
-        // Skipping releases the item; any time on it goes with it.
-        minutes: status === "done" ? entry.minutes : 0,
+        // Skipping releases the item, and any time on it goes with it. Ticking
+        // and un-ticking never touch the hours already recorded.
+        minutes: status === "skipped" ? 0 : entry.minutes,
         doneAt: status === "done" ? (entry.doneAt ?? Date.now()) : null,
       }),
     }));
+  };
+
+  /** What the checkbox does: mark finished, or take it back. */
+  toggleEntryDone = (entry: Entry): void => {
+    this.setEntryStatus(entry, entry.status === "done" ? "pending" : "done");
   };
 
   /** Flexible routines are recorded only on the days they actually happen. */
@@ -347,13 +374,13 @@ export class AppStore {
         tasks: previous.tasks.map((task) =>
           task.id === id ? { ...task, day } : task,
         ),
-        // The entry on the day it left goes away, unless that day is history.
+        // The entry on the day it left goes away, unless real time went into it.
         entries: previous.entries.filter(
           (entry) =>
             !(
               entry.sourceType === "task" &&
               entry.sourceId === id &&
-              compareDays(entry.day, today) >= 0
+              isReleasable(entry, today)
             ),
         ),
       }),
@@ -383,7 +410,7 @@ export class AppStore {
             !(
               entry.sourceType === "task" &&
               moving.has(entry.sourceId) &&
-              compareDays(entry.day, today) >= 0
+              isReleasable(entry, today)
             ),
         ),
       }),
@@ -401,7 +428,7 @@ export class AppStore {
           !(
             entry.sourceType === "task" &&
             entry.sourceId === id &&
-            compareDays(entry.day, today) >= 0
+            isReleasable(entry, today)
           ),
       ),
     }));

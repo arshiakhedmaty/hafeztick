@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { AppData } from "../domain/types";
+import { todayKey } from "../date/day";
+import type { AppData, Entry } from "../domain/types";
+import { makeEntry } from "../domain/test-utils";
 import type { DataRepository } from "../storage/repository";
 import { createEmptyData } from "../storage/defaults";
 import { AppStore } from "./store";
+
+const TODAY = todayKey();
 
 /** An in-memory repository, so the store can be exercised without a browser. */
 function memoryRepository(seed: AppData | null = null): DataRepository {
@@ -191,3 +195,66 @@ describe("undo", () => {
     expect(repository.load()?.tasks).toHaveLength(1);
   });
 });
+
+/** An entry for `day`, put into the store the way a past day would have left it. */
+function record(
+  store: AppStore,
+  day: string,
+  sourceId: string,
+  minutes: number,
+  status: "pending" | "done" = "pending",
+): Entry {
+  const entry = makeEntry({ day, sourceId, minutes, status });
+  store.logEntry(entry, minutes);
+  return entry;
+}
+
+describe("time and completion are separate", () => {
+  it("logging time leaves the item open", () => {
+    const store = mounted();
+    const entry = record(store, TODAY, "tk1", 0);
+
+    store.logEntry(entry, 45);
+
+    expect(store.getSnapshot().data.entries[0]).toMatchObject({
+      minutes: 45,
+      status: "pending",
+    });
+  });
+
+  it("a second session is added to the total, not swapped for it", () => {
+    const store = mounted();
+    const entry = record(store, TODAY, "tk1", 30);
+
+    store.addTime(entry, 45);
+
+    expect(store.getSnapshot().data.entries[0].minutes).toBe(75);
+  });
+
+  it("ticking and un-ticking never spend the hours already recorded", () => {
+    const store = mounted();
+    const entry = record(store, TODAY, "tk1", 75);
+
+    store.toggleEntryDone(entry);
+    expect(store.getSnapshot().data.entries[0]).toMatchObject({
+      status: "done",
+      minutes: 75,
+    });
+
+    store.toggleEntryDone(store.getSnapshot().data.entries[0]);
+    expect(store.getSnapshot().data.entries[0]).toMatchObject({
+      status: "pending",
+      minutes: 75,
+    });
+  });
+
+  it("skipping still releases the item and the time on it", () => {
+    const store = mounted();
+    const entry = record(store, TODAY, "tk1", 75);
+
+    store.setEntryStatus(entry, "skipped");
+
+    expect(store.getSnapshot().data.entries[0].minutes).toBe(0);
+  });
+});
+
