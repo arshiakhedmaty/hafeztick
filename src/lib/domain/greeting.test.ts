@@ -3,6 +3,7 @@ import { addDays } from "../date/day";
 import { createEmptyData } from "../storage/defaults";
 import { dailyGreeting } from "./greeting";
 import { makeEntry } from "./test-utils";
+import { VERSES } from "./verses";
 import type { AppData, Entry } from "./types";
 
 const TODAY = "2026-09-16";
@@ -96,5 +97,37 @@ describe("dailyGreeting", () => {
     );
 
     expect(greeting.tone).toBe("nudge");
+  });
+});
+
+describe("the daily verse", () => {
+  it("is fixed for a day and changes with it", () => {
+    const data = withEntries([]);
+
+    expect(dailyGreeting(data, TODAY).verse.text).toBe(
+      dailyGreeting(data, TODAY).verse.text,
+    );
+    expect(dailyGreeting(data, TODAY).verse.text).not.toBe(
+      dailyGreeting(data, addDays(TODAY, 1)).verse.text,
+    );
+  });
+
+  it("works through the collection rather than favouring a few", () => {
+    const data = withEntries([]);
+    const seen = new Set(
+      Array.from(
+        { length: VERSES.length * 3 },
+        (_, index) => dailyGreeting(data, addDays(TODAY, index)).verse.text,
+      ),
+    );
+
+    // Hashing cannot promise every line, but a spread this narrow would mean
+    // most of the eighty were unreachable.
+    expect(seen.size).toBeGreaterThan(VERSES.length * 0.55);
+  });
+
+  it("keeps every line short enough to read at a glance", () => {
+    for (const verse of VERSES) expect(verse.text.length).toBeLessThanOrEqual(90);
+    expect(VERSES).toHaveLength(80);
   });
 });

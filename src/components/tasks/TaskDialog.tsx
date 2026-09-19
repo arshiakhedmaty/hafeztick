@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { DayKey } from "@/lib/date/day";
+import { type DayKey, compareDays } from "@/lib/date/day";
 import type { Priority } from "@/lib/domain/types";
 import { PRIORITY_LABEL, entryId } from "@/lib/domain/types";
 import { taskById } from "@/lib/domain/selectors";
@@ -61,7 +61,7 @@ function TaskForm({
   defaultDay: DayKey | null;
   onClose: () => void;
 }) {
-  const { data, actions } = useApp();
+  const { data, actions, today } = useApp();
   const toast = useToast();
   const existing = taskId ? taskById(data, taskId) : null;
 
@@ -84,6 +84,9 @@ function TaskForm({
     : null;
   const [minutes, setMinutes] = useState(entry?.minutes ?? 0);
 
+  // Hours can only be reported for a day that has actually happened.
+  const canLogTime = day !== null && compareDays(day, today) <= 0;
+
   const save = () => {
     const trimmed = title.trim();
     if (!trimmed) return;
@@ -93,20 +96,28 @@ function TaskForm({
       if (existing.day !== day) actions.moveTask(existing.id, day);
 
       // Re-read after the move: the entry it belongs to may be a different day.
-      const target = day
+      const target = canLogTime
         ? actions
             .getSnapshot()
             .data.entries.find(
-              (item) => item.id === entryId(day, "task", existing.id),
+              (item) => item.id === entryId(day as DayKey, "task", existing.id),
             )
         : null;
       if (target && target.minutes !== minutes) actions.logEntry(target, minutes);
 
       toast({ message: "ذخیره شد", icon: "check" });
     } else {
-      actions.addTask({ title: trimmed, note, categoryId, priority, day, minutes });
+      const logged = canLogTime ? minutes : 0;
+      actions.addTask({
+        title: trimmed,
+        note,
+        categoryId,
+        priority,
+        day,
+        minutes: logged,
+      });
       toast({
-        message: minutes > 0 ? "کار با زمانش ثبت شد" : "کار اضافه شد",
+        message: logged > 0 ? "کار با زمانش ثبت شد" : "کار اضافه شد",
         icon: "plus",
       });
     }
@@ -171,18 +182,21 @@ function TaskForm({
         />
 
         {/* Recording a day that has already gone by is a single step: the
-            name, where it belongs, and how long it took, all in one form. */}
-        <div>
-          <Label hint={day ? undefined : "اول یک تاریخ انتخاب کن"}>
-            مدت زمان (اختیاری)
-          </Label>
-          <DurationField
-            value={minutes}
-            onChange={setMinutes}
-            onSubmit={save}
-            compact
-          />
-        </div>
+            name, where it belongs, and how long it took, all in one form.
+            A day that has not arrived yet gets no field — there are no hours
+            to report on it, and a box that quietly discarded what you typed
+            would be worse than no box. */}
+        {canLogTime && (
+          <div>
+            <Label>مدت زمان (اختیاری)</Label>
+            <DurationField
+              value={minutes}
+              onChange={setMinutes}
+              onSubmit={save}
+              compact
+            />
+          </div>
+        )}
 
         <div>
           <Label>تاریخ</Label>

@@ -37,7 +37,9 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
             onClick={() => updateSettings({ theme: option.value })}
             className={cn(
               "flex flex-1 items-center justify-center rounded-lg py-1.5 transition-all duration-150",
-              compact && "px-2.5",
+              // A little more room to hit on a phone, where this sits in the
+              // top bar and was a 37×29 target.
+              compact && "px-3 py-2",
               active
                 ? "bg-surface text-primary shadow-card"
                 : "text-muted hover:text-fg-soft",

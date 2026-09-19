@@ -114,24 +114,28 @@ export function AppShell({ children }: { children: ReactNode }) {
           {NAV_ITEMS.map((item) => {
             const active = isActive(pathname, item.href);
             return (
-              <li key={item.href} className="flex-1">
+              // min-w-0 is what keeps five tabs inside a 320px phone: a flex
+              // item refuses to shrink below its own text otherwise, and
+              // «روتین‌ها» was pushing the whole bar — and the page with it —
+              // into a sideways scroll.
+              <li key={item.href} className="min-w-0 flex-1">
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors duration-150",
+                    "flex flex-col items-center gap-1 px-0.5 py-2.5 text-[10px] font-medium transition-colors duration-150",
                     active ? "text-primary" : "text-muted",
                   )}
                 >
                   <span
                     className={cn(
-                      "grid h-7 w-12 place-items-center rounded-full transition-colors duration-200",
+                      "grid h-7 w-11 max-w-full place-items-center rounded-full transition-colors duration-200",
                       active && "bg-primary-soft",
                     )}
                   >
                     <Icon name={item.icon} size="1.15em" />
                   </span>
-                  {item.label}
+                  <span className="max-w-full truncate">{item.label}</span>
                 </Link>
               </li>
             );

@@ -1,6 +1,7 @@
 import { type DayKey, addDays, diffDays, weekdayIndex } from "../date/day";
 import { type GoalSettings, goalMinutesFor, successMinutesFor } from "./goals";
 import type { AppData, Entry } from "./types";
+import { type Verse, verseFor } from "./verses";
 
 /**
  * The line that greets you above the day's input.
@@ -20,6 +21,8 @@ export interface Greeting {
   text: string;
   /** Drives the colour: earned praise is gold, a nudge is plain. */
   tone: "praise" | "nudge" | "plain";
+  /** The day's line about effort — see {@link VERSES}. */
+  verse: Verse;
 }
 
 interface Situation {
@@ -193,5 +196,6 @@ export function dailyGreeting(
   return {
     text: pick(situation.lines, today, situation.kind.length),
     tone: situation.tone,
+    verse: verseFor(today),
   };
 }

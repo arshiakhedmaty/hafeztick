@@ -62,7 +62,14 @@ export default function WeekPage() {
     );
     const toDate = scoreWeek(elapsed, data.settings);
 
-    const previousDays = weekDays(addDays(days[0], -7));
+    // Compare like with like. Measuring five days of this week against seven
+    // of the last one made every Wednesday read as a collapse, which is not a
+    // fact about the person — it is a fact about Wednesday. Only the same
+    // stretch of the previous week counts.
+    const previousDays = weekDays(addDays(days[0], -7)).slice(
+      0,
+      Math.max(1, elapsed.length),
+    );
     const previous = scoreWeek(
       computeDayScores(data.entries, previousDays, data.settings),
       data.settings,
@@ -74,6 +81,7 @@ export default function WeekPage() {
       flexible: flexibleProgressForWeek(data.routines, data.entries, days),
       delta: toDate.minutes - previous.minutes,
       previousMinutes: previous.minutes,
+      comparedDays: previousDays.length,
     };
   }, [data, days, today]);
 
@@ -82,7 +90,7 @@ export default function WeekPage() {
 
   if (!ready) return <ScreenSkeleton rows={4} />;
 
-  const { week, toDate, delta, flexible } = summary;
+  const { week, toDate, delta, flexible, comparedDays } = summary;
   // Before today arrives in this week, the "so far" figure is the whole week.
   const elapsed = isCurrentWeek ? toDate : week;
 
@@ -152,7 +160,11 @@ export default function WeekPage() {
           </div>
 
           <div>
-            <p className="text-[11px] text-muted">نسبت به هفته‌ی قبل</p>
+            <p className="text-[11px] text-muted">
+              {comparedDays < 7
+                ? `نسبت به ${faNum(comparedDays)} روز اول هفته‌ی قبل`
+                : "نسبت به هفته‌ی قبل"}
+            </p>
             <p className="hz-tnum mt-1 flex items-center gap-1 text-lg font-semibold">
               <span
                 className={

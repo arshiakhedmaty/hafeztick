@@ -29,18 +29,29 @@ export function DailyNote({ day, today }: { day: DayKey; today: DayKey }) {
   if (!greeting) return null;
 
   return (
-    <p
-      className={cn(
-        "hz-fade mb-2.5 flex items-start gap-2 px-1 text-[13px] leading-relaxed",
-        greeting.tone === "praise" ? "text-accent" : "text-muted",
-      )}
-    >
-      <Icon
-        name={greeting.tone === "praise" ? "sparkle" : "sun"}
-        size="1.05em"
-        className="mt-[0.2em] shrink-0"
-      />
-      {greeting.text}
-    </p>
+    <div className="hz-fade mb-3 border-s-2 border-line ps-3">
+      <p
+        className={cn(
+          "flex items-start gap-2 text-[13px] leading-relaxed",
+          greeting.tone === "praise" ? "text-accent" : "text-muted",
+        )}
+      >
+        <Icon
+          name={greeting.tone === "praise" ? "sparkle" : "sun"}
+          size="1.05em"
+          className="mt-[0.2em] shrink-0"
+        />
+        {greeting.text}
+      </p>
+
+      {/* The couplet sits under the remark, quieter than it. One is about
+          today; the other has been true for eight hundred years. */}
+      <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted/85">
+        {greeting.verse.text}
+        {greeting.verse.by && (
+          <span className="text-muted/70"> — {greeting.verse.by}</span>
+        )}
+      </p>
+    </div>
   );
 }

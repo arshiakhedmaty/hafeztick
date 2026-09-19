@@ -155,3 +155,20 @@ describe("recording a day that has already passed", () => {
     });
   });
 });
+
+describe("time and days that have not arrived", () => {
+  it("does not pretend hours were spent on a future day", () => {
+    const store = fresh();
+    const tomorrow = addDays(TODAY, 1);
+
+    const task = store.addTask({ title: "امتحان", day: tomorrow, minutes: 90 });
+
+    // The plan materialises a future day only when it arrives, so there is
+    // nothing to log against — and inventing an entry would put hours into
+    // the statistics for a day nobody has lived yet.
+    const entry = store
+      .getSnapshot()
+      .data.entries.find((item) => item.sourceId === task.id);
+    expect(entry?.minutes ?? 0).toBe(0);
+  });
+});
