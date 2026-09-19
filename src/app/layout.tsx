@@ -14,9 +14,16 @@ const basePath = process.env.PAGES_BASE_PATH ?? "";
  *
  * Link previews — Telegram, WhatsApp and the rest — fetch the page once and
  * only follow an absolute image URL, so a relative one would silently produce
- * a bare link. The deploy workflow passes the real address in.
+ * a bare link. The Pages workflow passes the address in explicitly; on Vercel
+ * it is read from the platform's own variable rather than a setting somebody
+ * has to remember, which is why every preview from there used to point at
+ * localhost.
  */
-const siteUrl = (process.env.SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+const siteUrl = (
+  process.env.SITE_URL ??
+  (vercelUrl ? `https://${vercelUrl}` : "http://localhost:3000")
+).replace(/\/$/, "");
 
 const title = "حافظ‌تیک | دفترِ ساعت‌های مطالعه";
 const description =

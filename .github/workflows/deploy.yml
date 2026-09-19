@@ -45,6 +45,12 @@ jobs:
       - name: Publish to gh-pages
         run: |
           touch out/.nojekyll
+          # Vercel builds this repository too, and it watches every branch. This
+          # one holds built output rather than an application, so a build here
+          # can only ever fail — it did, on every single push. Telling Vercel to
+          # skip the branch belongs with the branch, not in a dashboard setting
+          # nobody reading this repository would ever see.
+          echo '{ "ignoreCommand": "exit 0" }' > out/vercel.json
           cd out
           git init -q -b gh-pages
           git config user.name "github-actions[bot]"
