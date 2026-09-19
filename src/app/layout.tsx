@@ -14,10 +14,11 @@ const basePath = process.env.PAGES_BASE_PATH ?? "";
  *
  * Link previews — Telegram, WhatsApp and the rest — fetch the page once and
  * only follow an absolute image URL, so a relative one would silently produce
- * a bare link. The Pages workflow passes the address in explicitly; on Vercel
- * it is read from the platform's own variable rather than a setting somebody
- * has to remember, which is why every preview from there used to point at
- * localhost.
+ * a bare link. Both deployments state it outright — the Pages workflow in its
+ * build environment, Vercel in vercel.json. The platform's own variable is
+ * only a fallback and deliberately not the first choice: it resolves to the
+ * project's production domain, which here is one that was never registered,
+ * so trusting it would aim every preview at an address that does not exist.
  */
 const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
 const siteUrl = (
