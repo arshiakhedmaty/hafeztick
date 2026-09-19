@@ -31,14 +31,11 @@ type FieldMode = "add" | "edit";
 export function EntryRow({
   entry,
   index = 0,
-  editable = true,
   onEdit,
   showDayHint,
 }: {
   entry: Entry;
   index?: number;
-  /** Past days are history: they can still be logged, but not restructured. */
-  editable?: boolean;
   onEdit?: (entry: Entry) => void;
   showDayHint?: string;
 }) {
@@ -50,7 +47,7 @@ export function EntryRow({
   const done = entry.status === "done";
   const skipped = entry.status === "skipped";
   const isTask = entry.sourceType === "task";
-  const canRestructure = editable && isTask;
+  const canRestructure = isTask;
 
   const [field, setField] = useState<FieldMode | null>(null);
   const [draft, setDraft] = useState(0);

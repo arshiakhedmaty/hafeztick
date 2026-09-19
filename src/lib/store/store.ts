@@ -1,6 +1,6 @@
 import { type DayKey, compareDays, todayKey } from "../date/day";
 import type { InsightKind } from "../domain/insight";
-import { materializeThrough, syncDay } from "../domain/schedule";
+import { entryFromTask, materializeThrough, syncDay } from "../domain/schedule";
 import { entryId } from "../domain/types";
 import type {
   AppData,
@@ -29,6 +29,8 @@ export interface TaskInput {
   categoryId?: string | null;
   priority?: Priority;
   note?: string;
+  /** Time already spent on it — how a forgotten session is written down. */
+  minutes?: number;
 }
 
 export interface RoutineInput {
@@ -71,6 +73,28 @@ function upsertEntry(entries: Entry[], entry: Entry): Entry[] {
  * sitting in the «کارهای باقی‌مانده» box for ever. Anything with time on it, or
  * deliberately skipped, stays exactly where it is.
  */
+/**
+ * Writes the entry for a task filed on a day that has already gone by.
+ *
+ * Materialisation only ever runs forward from today, so a task dated into the
+ * past would otherwise sit in the plan with nothing to log time against — it
+ * would simply not appear on the day it belongs to. Remembering on Tuesday
+ * that you studied on Sunday is an ordinary thing to want, so the entry is
+ * written here instead of waiting for a day that will never come round again.
+ */
+function backfillEntry(data: AppData, task: Task, today: DayKey): AppData {
+  if (task.day === null || compareDays(task.day, today) >= 0) return data;
+
+  const id = entryId(task.day, "task", task.id);
+  if (data.entries.some((entry) => entry.id === id)) return data;
+
+  const order = data.entries.filter((entry) => entry.day === task.day).length;
+  return {
+    ...data,
+    entries: [...data.entries, entryFromTask(task, task.day, order)],
+  };
+}
+
 function isReleasable(entry: Entry, today: DayKey): boolean {
   if (compareDays(entry.day, today) >= 0) return true;
   return entry.status === "pending" && entry.minutes === 0;
@@ -349,27 +373,66 @@ export class AppStore {
       order: Date.now(),
     };
 
-    this.update((previous) =>
-      this.resync({ ...previous, tasks: [...previous.tasks, task] }),
-    );
+    const today = this.snapshot.today;
+    const minutes = clampMinutes(input.minutes ?? 0);
+
+    this.update((previous) => {
+      const next = backfillEntry(
+        this.resync({ ...previous, tasks: [...previous.tasks, task] }),
+        task,
+        today,
+      );
+      if (task.day === null || minutes === 0) return next;
+
+      const id = entryId(task.day, "task", task.id);
+      const entry = next.entries.find((item) => item.id === id);
+      if (!entry) return next;
+
+      return { ...next, entries: upsertEntry(next.entries, { ...entry, minutes }) };
+    });
+
     return task;
   };
 
+  /**
+   * Edits the task, and every day it was already written onto.
+   *
+   * An entry is a snapshot, and for days still ahead the plan refreshes them
+   * on its own. Past days do not refresh — which used to mean a wrong category
+   * chosen last Tuesday was wrong for ever, and showed up wrong in the
+   * statistics. What the item *is* (its name, category, importance) is
+   * corrected everywhere; what actually happened — the minutes, the tick — is
+   * never touched.
+   */
   updateTask = (id: string, patch: Partial<Omit<Task, "id">>): void => {
-    this.update((previous) =>
-      this.resync({
-        ...previous,
-        tasks: previous.tasks.map((task) =>
-          task.id === id ? { ...task, ...patch } : task,
+    this.update((previous) => {
+      const tasks = previous.tasks.map((task) =>
+        task.id === id ? { ...task, ...patch } : task,
+      );
+      const updated = tasks.find((task) => task.id === id);
+      const next = this.resync({ ...previous, tasks });
+      if (!updated) return next;
+
+      return {
+        ...next,
+        entries: next.entries.map((entry) =>
+          entry.sourceType === "task" && entry.sourceId === id
+            ? {
+                ...entry,
+                title: updated.title,
+                categoryId: updated.categoryId,
+                priority: updated.priority,
+              }
+            : entry,
         ),
-      }),
-    );
+      };
+    });
   };
 
   moveTask = (id: string, day: DayKey | null): void => {
     const today = this.snapshot.today;
-    this.update((previous) =>
-      this.resync({
+    this.update((previous) => {
+      const next = this.resync({
         ...previous,
         tasks: previous.tasks.map((task) =>
           task.id === id ? { ...task, day } : task,
@@ -383,8 +446,11 @@ export class AppStore {
               isReleasable(entry, today)
             ),
         ),
-      }),
-    );
+      });
+
+      const moved = next.tasks.find((task) => task.id === id);
+      return moved ? backfillEntry(next, moved, today) : next;
+    });
   };
 
   /**

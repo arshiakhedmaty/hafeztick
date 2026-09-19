@@ -3,13 +3,14 @@
 import { useState } from "react";
 import type { DayKey } from "@/lib/date/day";
 import type { Priority } from "@/lib/domain/types";
-import { PRIORITY_LABEL } from "@/lib/domain/types";
+import { PRIORITY_LABEL, entryId } from "@/lib/domain/types";
 import { taskById } from "@/lib/domain/selectors";
 import { useApp } from "@/lib/store/AppStore";
 import { useToast } from "@/components/ui/Toast";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { DayPicker } from "@/components/ui/DayPicker";
+import { DurationField } from "@/components/ui/DurationField";
 import {
   Label,
   SelectField,
@@ -74,6 +75,15 @@ function TaskForm({
     existing ? existing.day : defaultDay,
   );
 
+  // The time already on this task, so the form can correct it in place. A task
+  // has at most one entry — the day it is filed on — so there is no ambiguity.
+  const entry = existing?.day
+    ? (data.entries.find(
+        (item) => item.id === entryId(existing.day as DayKey, "task", existing.id),
+      ) ?? null)
+    : null;
+  const [minutes, setMinutes] = useState(entry?.minutes ?? 0);
+
   const save = () => {
     const trimmed = title.trim();
     if (!trimmed) return;
@@ -81,10 +91,24 @@ function TaskForm({
     if (existing) {
       actions.updateTask(existing.id, { title: trimmed, note, categoryId, priority });
       if (existing.day !== day) actions.moveTask(existing.id, day);
+
+      // Re-read after the move: the entry it belongs to may be a different day.
+      const target = day
+        ? actions
+            .getSnapshot()
+            .data.entries.find(
+              (item) => item.id === entryId(day, "task", existing.id),
+            )
+        : null;
+      if (target && target.minutes !== minutes) actions.logEntry(target, minutes);
+
       toast({ message: "ذخیره شد", icon: "check" });
     } else {
-      actions.addTask({ title: trimmed, note, categoryId, priority, day });
-      toast({ message: "کار اضافه شد", icon: "plus" });
+      actions.addTask({ title: trimmed, note, categoryId, priority, day, minutes });
+      toast({
+        message: minutes > 0 ? "کار با زمانش ثبت شد" : "کار اضافه شد",
+        icon: "plus",
+      });
     }
     onClose();
   };
@@ -145,6 +169,20 @@ function TaskForm({
           options={PRIORITY_OPTIONS}
           onChange={setPriority}
         />
+
+        {/* Recording a day that has already gone by is a single step: the
+            name, where it belongs, and how long it took, all in one form. */}
+        <div>
+          <Label hint={day ? undefined : "اول یک تاریخ انتخاب کن"}>
+            مدت زمان (اختیاری)
+          </Label>
+          <DurationField
+            value={minutes}
+            onChange={setMinutes}
+            onSubmit={save}
+            compact
+          />
+        </div>
 
         <div>
           <Label>تاریخ</Label>

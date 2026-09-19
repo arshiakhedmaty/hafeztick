@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { faNum, faPercent } from "@/lib/utils/number";
 import { categoryVar } from "@/lib/utils/colors";
@@ -13,6 +14,7 @@ import { isSuccessfulDay, scoreDay } from "@/lib/domain/scoring";
 import { useApp } from "@/lib/store/AppStore";
 import { useToast } from "@/components/ui/Toast";
 import { Menu } from "@/components/ui/Menu";
+import { CategoryPicker } from "@/components/tasks/CategoryPicker";
 import { ProgressBar } from "@/components/ui/ProgressRing";
 import { Icon } from "@/components/ui/Icon";
 import { DayFlower } from "./DayFlower";
@@ -105,14 +107,11 @@ export function DayColumn({
       </div>
 
       <ul className="flex-1 space-y-0.5">
+        {/* Past days are editable here too. A day you forgot to fill in is the
+            most common reason to open the board at all, and a board you can
+            only read is a board that slowly goes out of date. */}
         {entries.map((entry: Entry) => (
-          <WeekEntry
-            key={entry.id}
-            entry={entry}
-            editable={!isPast}
-            onLog={onLog}
-            onEdit={onEdit}
-          />
+          <WeekEntry key={entry.id} entry={entry} onLog={onLog} onEdit={onEdit} />
         ))}
 
         {entries.length === 0 && (
@@ -120,16 +119,14 @@ export function DayColumn({
         )}
       </ul>
 
-      {!isPast && (
-        <button
-          type="button"
-          onClick={() => onAdd(day)}
-          className="mt-2 flex items-center justify-center gap-1 rounded-lg border border-dashed border-line py-1.5 text-[11.5px] text-muted transition-colors hover:border-primary/50 hover:text-primary"
-        >
-          <Icon name="plus" size="0.95em" />
-          کار
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => onAdd(day)}
+        className="mt-2 flex items-center justify-center gap-1 rounded-lg border border-dashed border-line py-1.5 text-[11.5px] text-muted transition-colors hover:border-primary/50 hover:text-primary"
+      >
+        <Icon name="plus" size="0.95em" />
+        {isPast ? "ثبت کار" : "کار"}
+      </button>
     </div>
   );
 }
@@ -144,22 +141,22 @@ export function DayColumn({
  */
 function WeekEntry({
   entry,
-  editable,
   onLog,
   onEdit,
 }: {
   entry: Entry;
-  editable: boolean;
   onLog: (entry: Entry) => void;
   onEdit: (entry: Entry) => void;
 }) {
   const { data, actions } = useApp();
   const toast = useToast();
 
+  const [picking, setPicking] = useState(false);
+
   const category = categoryById(data, entry.categoryId);
   const logged = entry.minutes > 0;
   const label = category?.name ?? entry.title;
-  const canRestructure = editable && entry.sourceType === "task";
+  const canRestructure = entry.sourceType === "task";
 
   return (
     <li className="group/row flex items-center gap-1">
@@ -202,6 +199,11 @@ function WeekEntry({
             label={`گزینه‌های ${entry.title}`}
             items={[
               { label: "ثبت زمان", icon: "clock", onClick: () => onLog(entry) },
+              {
+                label: category ? "تغییر دسته‌بندی" : "انتخاب دسته‌بندی",
+                icon: "inbox",
+                onClick: () => setPicking(true),
+              },
               { label: "ویرایش", icon: "pencil", onClick: () => onEdit(entry) },
               {
                 label: "حذف",
@@ -220,6 +222,17 @@ function WeekEntry({
           />
         </div>
       )}
+
+      <CategoryPicker
+        open={picking}
+        title={entry.title}
+        value={entry.categoryId}
+        onSelect={(categoryId) => {
+          actions.updateTask(entry.sourceId, { categoryId });
+          toast({ message: "دسته‌بندی به‌روز شد", icon: "check" });
+        }}
+        onClose={() => setPicking(false)}
+      />
     </li>
   );
 }

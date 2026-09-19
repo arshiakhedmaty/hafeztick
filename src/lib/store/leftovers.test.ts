@@ -93,3 +93,65 @@ describe("leftovers from earlier days", () => {
     expect(entries[0]).toMatchObject({ day: YESTERDAY, minutes: 90 });
   });
 });
+
+/** A store that knows what day it is, with nothing recorded yet. */
+function fresh() {
+  const store = new AppStore(memoryRepository(createEmptyData()));
+  store.subscribe(() => {});
+  return store;
+}
+
+describe("recording a day that has already passed", () => {
+  it("writes the entry the plan would never have created", () => {
+    const store = fresh();
+
+    const task = store.addTask({ title: "زبان", day: YESTERDAY, minutes: 45 });
+
+    const entries = store.getSnapshot().data.entries;
+    const entry = entries.find((item) => item.sourceId === task.id);
+    // Materialisation only runs forward, so without the backfill this entry
+    // simply would not exist and the task would be invisible on its own day.
+    expect(entry).toBeDefined();
+    expect(entry).toMatchObject({ day: YESTERDAY, minutes: 45, title: "زبان" });
+  });
+
+  it("files it under the right day even with no time yet", () => {
+    const store = fresh();
+    const task = store.addTask({ title: "ورزش", day: YESTERDAY });
+
+    const entry = store
+      .getSnapshot()
+      .data.entries.find((item) => item.sourceId === task.id);
+    expect(entry).toMatchObject({ day: YESTERDAY, minutes: 0, status: "pending" });
+  });
+
+  it("brings the entry along when a task is moved back into the past", () => {
+    const store = fresh();
+    const task = store.addTask({ title: "مرور", day: null });
+
+    store.moveTask(task.id, YESTERDAY);
+
+    const entry = store
+      .getSnapshot()
+      .data.entries.find((item) => item.sourceId === task.id);
+    expect(entry?.day).toBe(YESTERDAY);
+  });
+
+  it("corrects the category on a day already recorded", () => {
+    const store = fresh();
+    const task = store.addTask({ title: "زبان", day: YESTERDAY, minutes: 60 });
+    const category = store.getSnapshot().data.categories[0];
+
+    store.updateTask(task.id, { categoryId: category.id, title: "زبان انگلیسی" });
+
+    const entry = store
+      .getSnapshot()
+      .data.entries.find((item) => item.sourceId === task.id);
+    // What it *is* changes everywhere; what happened — the minutes — does not.
+    expect(entry).toMatchObject({
+      categoryId: category.id,
+      title: "زبان انگلیسی",
+      minutes: 60,
+    });
+  });
+});

@@ -26,6 +26,7 @@ import { DayHeader } from "@/components/today/DayHeader";
 import { DaySummary } from "@/components/today/DaySummary";
 import { FlexibleSection } from "@/components/today/FlexibleSection";
 import { OverdueNotice } from "@/components/today/OverdueNotice";
+import { DailyNote } from "@/components/today/DailyNote";
 
 export default function TodayPage() {
   const { data, actions, today, ready } = useApp();
@@ -118,11 +119,16 @@ export default function TodayPage() {
 
       <FlexibleSection day={day} />
 
-      {!isPast && (
-        <div className="mb-5">
-          <QuickAdd day={day} />
-        </div>
-      )}
+      <DailyNote day={day} today={today} />
+
+      {/* Past days accept new items too: writing down something you did
+          yesterday and forgot to record is the same act as planning today. */}
+      <div className="mb-5">
+        <QuickAdd
+          day={day}
+          placeholder={isPast ? "کاری که این روز انجام دادی…" : undefined}
+        />
+      </div>
 
       {hasNothingAtAll ? (
         <EmptyState
@@ -163,9 +169,7 @@ export default function TodayPage() {
                   <EntryRow
                     key={entry.id}
                     entry={entry}
-                    index={index}
-                    editable={!isPast}
-                  />
+                    index={index}                  />
                 ))}
               </ul>
             </section>
@@ -179,9 +183,7 @@ export default function TodayPage() {
                   <EntryRow
                     key={entry.id}
                     entry={entry}
-                    index={index}
-                    editable={!isPast}
-                    onEdit={(item: Entry) => setEditingTaskId(item.sourceId)}
+                    index={index}                    onEdit={(item: Entry) => setEditingTaskId(item.sourceId)}
                   />
                 ))}
               </ul>
@@ -228,9 +230,7 @@ export default function TodayPage() {
                     <EntryRow
                       key={entry.id}
                       entry={entry}
-                      index={index}
-                      editable={!isPast}
-                      onEdit={(item: Entry) => setEditingTaskId(item.sourceId)}
+                      index={index}                      onEdit={(item: Entry) => setEditingTaskId(item.sourceId)}
                     />
                   ))}
                 </ul>
